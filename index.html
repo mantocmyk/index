@@ -1,0 +1,2422 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Suivi Visites & Carburant</title>
+<style>
+  :root{
+    --bg:#0e1114;
+    --panel:#1c2128;
+    --panel-2:#262d36;
+    --line:#4a5563;
+    --ink:#ffffff;
+    --ink-dim:#c3cbd4;
+    --amber:#ffab3d;
+    --amber-dim:#7a5423;
+    --green:#5cd68e;
+    --red:#ff6b56;
+    --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-weight:600;}
+  body{padding-bottom:60px;font-size:1.05rem;}
+  h1{font-size:1.3rem;letter-spacing:.04em;text-transform:uppercase;margin:0;font-weight:800;color:var(--ink);}
+  .eyebrow{font-family:var(--mono);font-size:.78rem;color:var(--amber);letter-spacing:.12em;text-transform:uppercase;font-weight:700;}
+
+  header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--line);padding:14px 16px 0;}
+  .headline{display:flex;flex-direction:column;gap:2px;margin-bottom:12px;}
+  .tabs{display:flex;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{flex:1;text-align:center;padding:12px 4px;font-family:var(--mono);font-size:.9rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-dim);background:none;border:none;border-bottom:3px solid transparent;cursor:pointer;}
+  .tab{flex:0 0 auto;padding-left:14px;padding-right:14px;white-space:nowrap;}
+  .tab.active{color:var(--amber);border-bottom-color:var(--amber);}
+
+  main{padding:16px;max-width:640px;margin:0 auto;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .card{background:var(--panel);border:1.5px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;}
+  .card-title{font-family:var(--mono);font-size:.82rem;font-weight:800;color:var(--ink);text-transform:uppercase;letter-spacing:.08em;margin:0 0 12px;display:flex;align-items:center;justify-content:space-between;}
+
+  label{display:block;font-size:.88rem;font-weight:700;color:var(--ink-dim);margin:12px 0 5px;}
+  label:first-child{margin-top:0;}
+  input[type=text],input[type=number],input[type=datetime-local],input[type=date],input[type=time],textarea{
+    width:100%;background:var(--panel-2);border:1.5px solid var(--line);border-radius:7px;
+    color:var(--ink);padding:11px 10px;font-size:1.05rem;font-weight:700;font-family:var(--sans);
+  }
+  input[type=text],input[type=number],input[type=datetime-local],input[type=date],input[type=time],textarea,select,.btn-now,button{
+    scroll-margin-top:var(--header-h, 160px);
+  }
+  textarea{min-height:60px;resize:vertical;font-family:var(--sans);}
+  input:focus,textarea:focus{outline:none;border-color:var(--amber);border-width:2px;}
+
+  .row{display:flex;gap:8px;align-items:stretch;}
+  .row input{flex:1;min-width:0;}
+
+  button{cursor:pointer;font-family:var(--sans);border:none;}
+  .btn-now{background:var(--panel-2);border:1.5px solid var(--amber);color:var(--amber);border-radius:7px;padding:0 12px;font-size:.85rem;font-weight:800;font-family:var(--mono);white-space:nowrap;}
+  .btn-now:active{background:var(--amber-dim);}
+
+  .btn-gps{width:100%;background:var(--panel-2);border:2px dashed var(--line);color:var(--ink);font-weight:700;border-radius:7px;padding:12px;font-size:.95rem;text-align:left;}
+  .btn-gps.set{border-style:solid;border-color:var(--green);color:var(--green);font-family:var(--mono);font-size:.9rem;font-weight:800;}
+
+  .toggle-group{display:flex;gap:8px;}
+  .toggle{flex:1;padding:12px;text-align:center;border-radius:7px;border:1.5px solid var(--line);background:var(--panel-2);color:var(--ink-dim);font-size:.95rem;font-weight:800;}
+  .toggle.on-yes.selected{background:rgba(92,214,142,.18);border-color:var(--green);color:var(--green);}
+  .toggle.on-no.selected{background:rgba(255,107,86,.18);border-color:var(--red);color:var(--red);}
+
+  .btn-primary{width:100%;background:var(--amber);color:#1c1200;font-weight:800;border-radius:8px;padding:14px;font-size:1rem;letter-spacing:.02em;margin-top:16px;text-transform:uppercase;}
+  .btn-primary:active{background:#c67d20;}
+  .btn-secondary{background:var(--panel-2);color:var(--ink);border:1.5px solid var(--line);border-radius:7px;padding:9px 12px;font-size:.85rem;font-weight:700;}
+
+  .entry{background:var(--panel);border:1.5px solid var(--line);border-radius:10px;padding:13px 14px;margin-bottom:10px;}
+  .entry-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+  .entry-name{font-weight:800;font-size:1.05rem;}
+  .entry-del{background:none;color:var(--ink-dim);font-size:.8rem;font-weight:700;font-family:var(--mono);padding:4px 6px;}
+  .entry-del:active{color:var(--red);}
+  .entry-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;font-size:.88rem;font-weight:700;color:var(--ink-dim);}
+  .entry-grid div b{color:var(--ink);font-weight:800;}
+  .entry-grid .full{grid-column:1/-1;}
+  .pill{display:inline-block;font-family:var(--mono);font-size:.75rem;font-weight:800;padding:2px 8px;border-radius:100px;margin-left:6px;}
+  .pill-yes{background:rgba(92,214,142,.18);color:var(--green);}
+  .pill-no{background:rgba(255,107,86,.18);color:var(--red);}
+
+  .empty{color:var(--ink-dim);font-size:.95rem;font-weight:700;text-align:center;padding:30px 10px;font-family:var(--mono);}
+
+  .accordion{background:var(--panel);border:1.5px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden;}
+  .accordion-head{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--panel-2);border:none;padding:13px 14px;text-align:left;}
+  .accordion-title{font-weight:800;font-size:1.02rem;color:var(--ink);display:flex;align-items:center;gap:8px;}
+  .accordion-count{font-family:var(--mono);font-size:.72rem;font-weight:800;color:var(--amber);background:rgba(255,171,61,.15);border-radius:100px;padding:2px 8px;}
+  .accordion-meta{font-family:var(--mono);font-size:.75rem;font-weight:700;color:var(--ink-dim);white-space:nowrap;display:flex;align-items:center;gap:6px;}
+  .chevron{display:inline-block;transition:transform .15s;font-size:.9rem;}
+  .accordion.open .chevron{transform:rotate(180deg);}
+  .accordion-body{display:none;padding:10px;}
+  .accordion.open .accordion-body{display:block;}
+  .accordion-body .entry{margin-bottom:8px;}
+  .accordion-body .entry:last-child{margin-bottom:0;}
+
+  .stat-row{display:flex;gap:8px;margin-bottom:14px;}
+  .stat{flex:1;background:var(--panel);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;}
+  .stat .v{font-family:var(--mono);font-size:1.35rem;color:var(--amber);font-weight:800;}
+  .stat .l{font-size:.75rem;font-weight:700;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.05em;}
+
+  .footer-actions{display:flex;gap:8px;margin-top:18px;}
+  .footer-actions button{flex:1;}
+  .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--panel-2);border:1px solid var(--amber);color:var(--ink);padding:10px 18px;border-radius:100px;font-size:.82rem;opacity:0;pointer-events:none;transition:opacity .2s;z-index:100;}
+  .toast.show{opacity:1;}
+  #import-file{display:none;}
+
+  .ref-table{width:100%;border-collapse:collapse;font-size:.85rem;}
+  .ref-table th,.ref-table td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;}
+  .ref-table th{font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--amber);font-weight:800;}
+  .photo-add-btn{width:100%;background:var(--panel-2);border:2px dashed var(--line);color:var(--ink);font-weight:700;border-radius:7px;padding:10px;font-size:.88rem;text-align:center;margin-top:6px;}
+  .photo-add-btn:active{background:var(--amber-dim);}
+  .photo-thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .photo-thumbs.entry-photos{margin-top:8px;}
+  .photo-thumb{position:relative;width:70px;height:70px;border-radius:8px;overflow:hidden;border:1.5px solid var(--line);flex:none;}
+  .photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer;}
+  .photo-thumb-rm{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:.85rem;line-height:1;font-weight:800;padding:0;}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;z-index:200;padding:20px;}
+  .lightbox.open{display:flex;}
+  .lightbox img{max-width:100%;max-height:100%;border-radius:8px;}
+  .ref-table td{color:var(--ink-dim);font-weight:600;}
+  .ref-table td b{color:var(--ink);font-weight:800;}
+  .ref-table tr:last-child td{border-bottom:none;}
+  .ref-note{font-size:.82rem;color:var(--ink-dim);font-weight:600;margin:10px 0 0;line-height:1.4;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="headline">
+    <span class="eyebrow">Journal de route <span id="app-version" style="opacity:.7;">v3.3</span></span>
+    <h1>Visites, Carburant & Remorques</h1>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="transport">Chargement/Déchargement</button>
+    <button class="tab" data-tab="carburant">Carburant</button>
+    <button class="tab" data-tab="tracteur">Tracteur</button>
+    <button class="tab" data-tab="remorques">Remorques</button>
+    <button class="tab" data-tab="temperatures">Températures</button>
+    <button class="tab" data-tab="export">Export</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- VUE VISITES -->
+  <!-- VUE CHARGEMENT -->
+  <!-- VUE CHARGEMENT / DÉCHARGEMENT (fusionnée) -->
+  <section class="view active" id="view-transport">
+    <div class="card">
+      <p class="card-title">Nouveau chargement / déchargement</p>
+
+      <label>Expéditeur existant</label>
+      <select id="tr-exp-select">
+        <option value="">-- Sélectionner un expéditeur existant --</option>
+      </select>
+
+      <label>Expéditeur</label>
+      <input type="text" id="tr-exp" placeholder="Nouvel expéditeur, ou sélectionné ci-dessus" autocomplete="off">
+
+      <label>Destinataire existant</label>
+      <select id="tr-dest-select">
+        <option value="">-- Sélectionner un destinataire existant --</option>
+      </select>
+
+      <label>Destinataire</label>
+      <input type="text" id="tr-dest" placeholder="Nouveau destinataire, ou sélectionné ci-dessus" autocomplete="off">
+
+      <label>Remorque existante</label>
+      <select id="tr-remorque-select">
+        <option value="">-- Sélectionner une immatriculation --</option>
+      </select>
+
+      <label>Immatriculation remorque</label>
+      <input type="text" id="tr-remorque" placeholder="Nouvelle immatriculation, ou sélectionnée ci-dessus" autocomplete="off">
+
+      <p class="card-title" style="margin-top:18px;">Chez l'expéditeur</p>
+
+      <label>Arrivée chez l'expéditeur</label>
+      <div class="row">
+        <input type="datetime-local" id="tr-arrivee-exp">
+        <button class="btn-now" data-target="tr-arrivee-exp">Maintenant</button>
+      </div>
+
+      <label>Départ de chez l'expéditeur</label>
+      <div class="row">
+        <input type="datetime-local" id="tr-depart-exp">
+        <button class="btn-now" data-target="tr-depart-exp">Maintenant</button>
+      </div>
+
+      <label>Coordonnées GPS expéditeur</label>
+      <div class="row">
+        <input type="text" id="tr-gps-exp-lat" placeholder="Latitude" inputmode="decimal">
+        <input type="text" id="tr-gps-exp-lon" placeholder="Longitude" inputmode="decimal">
+      </div>
+      <button class="btn-gps" id="tr-gps-exp-btn" style="margin-top:8px;">📍 Capter la position actuelle</button>
+      <button class="btn-gps" id="tr-gps-exp-maps-btn" style="margin-top:8px;">🗺️ Ouvrir dans Google Maps</button>
+
+      <label style="margin-top:14px;">Palettes entrée</label>
+      <input type="number" id="tr-palette-entree-exp" placeholder="Nombre" inputmode="numeric">
+
+      <label>Palettes sortie</label>
+      <input type="number" id="tr-palette-sortie-exp" placeholder="Nombre" inputmode="numeric">
+
+      <label>Palettes non rendues</label>
+      <input type="number" id="tr-palette-non-rendue-exp" placeholder="Nombre" inputmode="numeric">
+
+      <p class="card-title" style="margin-top:18px;">Chez le destinataire</p>
+
+      <label>Arrivée chez le destinataire</label>
+      <div class="row">
+        <input type="datetime-local" id="tr-arrivee-dest">
+        <button class="btn-now" data-target="tr-arrivee-dest">Maintenant</button>
+      </div>
+
+      <label>Départ de chez le destinataire</label>
+      <div class="row">
+        <input type="datetime-local" id="tr-depart-dest">
+        <button class="btn-now" data-target="tr-depart-dest">Maintenant</button>
+      </div>
+
+      <label>Coordonnées GPS destinataire</label>
+      <div class="row">
+        <input type="text" id="tr-gps-dest-lat" placeholder="Latitude" inputmode="decimal">
+        <input type="text" id="tr-gps-dest-lon" placeholder="Longitude" inputmode="decimal">
+      </div>
+      <button class="btn-gps" id="tr-gps-dest-btn" style="margin-top:8px;">📍 Capter la position actuelle</button>
+      <button class="btn-gps" id="tr-gps-dest-maps-btn" style="margin-top:8px;">🗺️ Ouvrir dans Google Maps</button>
+
+      <label style="margin-top:14px;">Palettes entrée</label>
+      <input type="number" id="tr-palette-entree-dest" placeholder="Nombre" inputmode="numeric">
+
+      <label>Palettes sortie</label>
+      <input type="number" id="tr-palette-sortie-dest" placeholder="Nombre" inputmode="numeric">
+
+      <label>Palettes non rendues</label>
+      <input type="number" id="tr-palette-non-rendue-dest" placeholder="Nombre" inputmode="numeric">
+
+      <p class="card-title" style="margin-top:18px;">Détails</p>
+
+      <label>Observation</label>
+      <textarea id="tr-observation" placeholder="Remarques, incidents, état du chargement/déchargement…"></textarea>
+      <input type="file" id="tr-photos-input" accept="image/*" multiple style="display:none">
+      <button type="button" class="photo-add-btn" id="tr-photos-btn">📷 Ajouter des photos</button>
+      <div class="photo-thumbs" id="tr-photos-preview"></div>
+
+      <label>Lettre de voiture</label>
+      <input type="text" id="tr-lettre" placeholder="N° lettre de voiture">
+
+      <label>Numéro de commande</label>
+      <input type="text" id="tr-commande" placeholder="N° de commande">
+
+      <label>Validation FRC</label>
+      <input type="text" id="tr-frc" placeholder="MM/AAAA" inputmode="numeric" maxlength="7">
+
+      <label>Température</label>
+      <div class="row">
+        <input type="text" id="tr-temperature" placeholder="Ex : -18°C" inputmode="decimal">
+        <button type="button" class="btn-now" id="tr-temp-sign" style="min-width:52px;">±</button>
+      </div>
+
+      <label>Numéro de scellé départ</label>
+      <input type="text" id="tr-scelle-depart" placeholder="N° de scellé">
+
+      <label>Scellé arrivée intact</label>
+      <div class="toggle-group" id="tr-scelle-arrivee-group">
+        <button type="button" class="toggle on-yes" data-value="oui">Oui</button>
+        <button type="button" class="toggle on-no" data-value="non">Non</button>
+      </div>
+
+      <button class="btn-primary" id="tr-save">Enregistrer</button>
+      <button class="btn-secondary" id="tr-cancel-edit" style="width:100%;margin-top:8px;display:none;">Annuler la modification</button>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Rechercher dans l'historique</p>
+      <label>Nom du client</label>
+      <select id="tr-search-name">
+        <option value="">-- Tous les clients --</option>
+      </select>
+      <label>Date</label>
+      <div class="row">
+        <input type="date" id="tr-search-date">
+        <button class="btn-secondary" id="tr-search-clear">Effacer</button>
+      </div>
+    </div>
+
+    <div id="tr-list"></div>
+  </section>
+
+  <!-- VUE CARBURANT -->
+  <section class="view" id="view-carburant">
+    <div class="card">
+      <label>Filtrer par véhicule</label>
+      <select id="c-filter-vehicule">
+        <option value="">-- Tous les véhicules --</option>
+      </select>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat">
+        <div class="v" id="c-stat-conso">—</div>
+        <div class="l">L/100km moyen</div>
+      </div>
+      <div class="stat">
+        <div class="v" id="c-stat-count">0</div>
+        <div class="l">Pleins enregistrés</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Nouvelle prise de carburant</p>
+
+      <label>Immatriculation véhicule existante</label>
+      <select id="c-vehicule-select">
+        <option value="">-- Sélectionner une immatriculation --</option>
+      </select>
+
+      <label>Immatriculation véhicule</label>
+      <input type="text" id="c-vehicule" placeholder="Nouvelle immatriculation, ou sélectionnée ci-dessus" autocomplete="off">
+
+      <label>Nom de la station</label>
+      <input type="text" id="c-station" placeholder="Station-service">
+
+      <label>Date / heure</label>
+      <div class="row">
+        <input type="datetime-local" id="c-date">
+        <button class="btn-now" data-target="c-date">Maintenant</button>
+      </div>
+
+      <label>Kilométrage</label>
+      <input type="number" id="c-km" placeholder="km au compteur" inputmode="numeric">
+
+      <label>Litres</label>
+      <input type="number" id="c-litres" placeholder="Litres pris" step="0.01" inputmode="decimal">
+
+      <button class="btn-primary" id="c-save">Enregistrer le plein</button>
+      <button class="btn-secondary" id="c-cancel-edit" style="width:100%;margin-top:8px;display:none;">Annuler la modification</button>
+    </div>
+
+    <div id="c-list"></div>
+  </section>
+
+  <!-- VUE TRACTEUR -->
+  <section class="view" id="view-tracteur">
+    <div class="card">
+      <p class="card-title">Nouvelle intervention tracteur</p>
+
+      <label>Immatriculation existante</label>
+      <select id="t-vehicule-select">
+        <option value="">-- Sélectionner une immatriculation --</option>
+      </select>
+
+      <label>Immatriculation tracteur</label>
+      <input type="text" id="t-vehicule" placeholder="Nouvelle immatriculation, ou sélectionnée ci-dessus" autocomplete="off">
+
+      <label>Date</label>
+      <div class="row">
+        <input type="text" id="t-date-date" placeholder="JJ/MM/AAAA" inputmode="numeric" maxlength="10">
+        <input type="text" id="t-date-time" placeholder="HH:MM" inputmode="numeric" maxlength="5">
+        <button class="btn-now" id="t-date-now">Maintenant</button>
+      </div>
+
+      <label>Kilométrage</label>
+      <input type="number" id="t-km" placeholder="km au compteur" inputmode="numeric">
+
+      <label>Entretien</label>
+      <textarea id="t-entretien" placeholder="Détails de l'entretien effectué…"></textarea>
+
+      <label>Réparation</label>
+      <textarea id="t-reparation" placeholder="Détails de la réparation effectuée…"></textarea>
+
+      <label>Observation</label>
+      <textarea id="t-observation" placeholder="Remarques diverses…"></textarea>
+      <input type="file" id="t-photos-input" accept="image/*" multiple style="display:none">
+      <button type="button" class="photo-add-btn" id="t-photos-btn">📷 Ajouter des photos</button>
+      <div class="photo-thumbs" id="t-photos-preview"></div>
+
+      <button class="btn-primary" id="t-save">Enregistrer</button>
+      <button class="btn-secondary" id="t-cancel-edit" style="width:100%;margin-top:8px;display:none;">Annuler la modification</button>
+    </div>
+
+    <div id="t-list"></div>
+  </section>
+
+  <!-- VUE REMORQUES -->
+  <section class="view" id="view-remorques">
+    <div class="card">
+      <p class="card-title">Nouvel événement remorque</p>
+
+      <label>Type d'événement</label>
+      <select id="r-type">
+        <option value="Accrochage">Accrochage</option>
+        <option value="Décrochage">Décrochage</option>
+      </select>
+
+      <label>Immatriculation existante</label>
+      <select id="r-immat-select">
+        <option value="">-- Sélectionner une immatriculation --</option>
+      </select>
+
+      <label>Immatriculation remorque</label>
+      <input type="text" id="r-immat" placeholder="Nouvelle immatriculation, ou sélectionnée ci-dessus" autocomplete="off">
+
+      <label>Lieu</label>
+      <input type="text" id="r-lieu" placeholder="Lieu de l'événement">
+
+      <label>Date et heure</label>
+      <div class="row">
+        <input type="datetime-local" id="r-date">
+        <button class="btn-now" data-target="r-date">Maintenant</button>
+      </div>
+
+      <label>Date FRC</label>
+      <div class="row">
+        <input type="text" id="r-date-frc" placeholder="MM/AAAA" inputmode="numeric" maxlength="7">
+        <button class="btn-now" id="r-date-frc-today">Ce mois-ci</button>
+      </div>
+
+      <label>Observation</label>
+      <textarea id="r-observation" placeholder="Remarques, état de la remorque…"></textarea>
+      <input type="file" id="r-photos-input" accept="image/*" multiple style="display:none">
+      <button type="button" class="photo-add-btn" id="r-photos-btn">📷 Ajouter des photos</button>
+      <div class="photo-thumbs" id="r-photos-preview"></div>
+
+      <button class="btn-primary" id="r-save">Enregistrer l'événement</button>
+      <button class="btn-secondary" id="r-cancel-edit" style="width:100%;margin-top:8px;display:none;">Annuler la modification</button>
+    </div>
+
+    <div id="r-list"></div>
+  </section>
+
+  <!-- VUE TEMPÉRATURES -->
+  <section class="view" id="view-temperatures">
+    <div class="card">
+      <p class="card-title">Seuils de température par denrée</p>
+      <table class="ref-table">
+        <thead>
+          <tr><th>Denrée</th><th>Température</th><th>Classe ATP</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>Surgelés</b> (viande, poisson, légumes, plats préparés)</td><td>≤ −18°C (souvent −20/−22°C)</td><td>C (C1/C2 : −10°C, C3 : −20°C)</td></tr>
+          <tr><td><b>Crèmes glacées / glaces</b></td><td>≤ −20°C, parfois −25°C</td><td>C3</td></tr>
+          <tr><td><b>Viandes et poissons frais</b></td><td>0°C à +2°C</td><td>B (0°C)</td></tr>
+          <tr><td><b>Produits laitiers frais</b> (lait, yaourts, fromages frais)</td><td>0°C à +4°C</td><td>A ou B selon sensibilité</td></tr>
+          <tr><td><b>Œufs</b></td><td>+5°C à +8°C</td><td>A</td></tr>
+          <tr><td><b>Crèmerie / beurre</b></td><td>0°C à +4°C</td><td>B</td></tr>
+          <tr><td><b>Fromages affinés</b></td><td>+4°C à +8°C (plus tolérants)</td><td>A</td></tr>
+          <tr><td><b>Fruits et légumes frais</b></td><td>+4°C à +8°C (exotiques : +10 à +13°C)</td><td>A</td></tr>
+          <tr><td><b>Charcuterie / traiteur</b></td><td>0°C à +4°C</td><td>B</td></tr>
+          <tr><td><b>Plats cuisinés frais (non surgelés)</b></td><td>0°C à +3°C</td><td>B</td></tr>
+        </tbody>
+      </table>
+      <p class="ref-note">
+        Les fruits exotiques (bananes, mangues, agrumes) craignent le froid en dessous de +10/+13°C (risque de "chilling injury"), contrairement aux légumes classiques qui tolèrent le frais.<br><br>
+        En cas de chargement mixte frais/surgelé à compartiments, c'est la température la plus contraignante du compartiment qui s'applique, pas une moyenne.<br><br>
+        Seuils indicatifs (arrêté du 21/12/2009 pour la France) ; la classe ATP indique la capacité de l'engin, pas une obligation réglementaire de transport.
+      </p>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Classes ATP — engins frigorifiques</p>
+      <table class="ref-table">
+        <thead>
+          <tr><th>Classe</th><th>Temp. intérieure max</th><th>Usage typique</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>A</b></td><td>+7°C</td><td>Frais</td></tr>
+          <tr><td><b>B</b></td><td>0°C</td><td>Frais sensible</td></tr>
+          <tr><td><b>C1</b></td><td>−10°C</td><td>Surgelé</td></tr>
+          <tr><td><b>C2</b></td><td>−10°C (exigences renforcées)</td><td>Surgelé</td></tr>
+          <tr><td><b>C3</b></td><td>−20°C</td><td>Surgelé</td></tr>
+        </tbody>
+      </table>
+      <p class="ref-note">
+        La FRC (Fiche de Résultat de Contrôle, accord ATP) atteste que l'engin répond à ces normes. Validité : 6 ans au premier contrôle, 3 ans aux renouvellements.
+      </p>
+    </div>
+  </section>
+
+  <!-- VUE EXPORT -->
+  <section class="view" id="view-export">
+    <div class="card">
+      <p class="card-title">Export / Import JSON (tout en un)</p>
+      <p style="font-size:.85rem;color:var(--ink-dim);font-weight:600;margin:0 0 12px;">À faire avant chaque mise à jour de l'appli — récupère tout (visites, carburant, clients, remorques, chargements, déchargements) en un seul fichier.</p>
+      <button class="btn-primary" id="exp-all-btn" style="margin-top:0;">📦 Export JSON</button>
+      <button class="btn-secondary" id="imp-all-btn" style="width:100%;margin-top:10px;">📥 Import JSON</button>
+      <input type="file" id="import-file-all" accept="application/json" style="display:none;">
+    </div>
+
+    <div class="card">
+      <p class="card-title">Transférer l'historique</p>
+      <p style="font-size:.85rem;color:var(--ink-dim);font-weight:600;margin:0 0 12px;">Copie chaque visite enregistrée vers Chargement/Déchargement (comme expéditeur et destinataire), avec toutes ses données (GPS, FRC, température, scellés…). Les visites d'origine restent intactes.</p>
+      <button class="btn-secondary" id="transfer-visites-btn" style="width:100%;">🔁 Transférer les visites vers Chargement/Déchargement</button>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Export CSV par module</p>
+
+      <label>Visites clients</label>
+      <button class="btn-secondary" id="exp-v-csv" style="width:100%;">Export CSV</button>
+
+      <label style="margin-top:18px;">Carburant</label>
+      <button class="btn-secondary" id="exp-c-csv" style="width:100%;">Export CSV</button>
+
+      <label style="margin-top:18px;">Clients (noms + GPS mémorisés)</label>
+      <button class="btn-secondary" id="exp-cli-csv" style="width:100%;">Export CSV</button>
+
+      <label style="margin-top:18px;">Tracteur (entretiens / réparations)</label>
+      <button class="btn-secondary" id="exp-t-csv" style="width:100%;">Export CSV</button>
+
+      <label style="margin-top:18px;">Remorques (accrochages / décrochages)</label>
+      <button class="btn-secondary" id="exp-r-csv" style="width:100%;">Export CSV</button>
+
+      <label style="margin-top:18px;">Chargements / Déchargements</label>
+      <button class="btn-secondary" id="exp-tr-csv" style="width:100%;">Export CSV</button>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+<div class="lightbox" id="lightbox"><img id="lightbox-img" src="" alt=""></div>
+
+
+<script>
+(function(){
+  "use strict";
+
+  // Mesure la hauteur réelle de l'en-tête collant (variable selon le nombre d'onglets
+  // qui passent à la ligne) pour que le navigateur laisse assez de place au-dessus
+  // d'un champ quand il le fait défiler à l'écran (ex. à l'ouverture du clavier).
+  function updateHeaderHeight(){
+    var header = document.querySelector("header");
+    if(!header) return;
+    document.documentElement.style.setProperty("--header-h", (header.offsetHeight + 12) + "px");
+  }
+  updateHeaderHeight();
+  window.addEventListener("resize", updateHeaderHeight);
+  window.addEventListener("orientationchange", updateHeaderHeight);
+
+  var STORAGE_V = "svc_visites_v1";
+  var STORAGE_C = "svc_carburant_v1";
+  var STORAGE_CLI = "svc_clients_v1";
+  var STORAGE_R = "svc_remorques_v1";
+  var STORAGE_IMMAT = "svc_immat_v1";
+  var STORAGE_VEHICULES = "svc_vehicules_v1";
+  var STORAGE_TRACTEUR = "svc_tracteur_v1";
+  var STORAGE_CG = "svc_chargement_v1";
+  var STORAGE_DC = "svc_dechargement_v1";
+  var STORAGE_TR = "svc_transport_v1";
+  var STORAGE_EXPED = "svc_expediteurs_v1";
+  var STORAGE_DEST = "svc_destinataires_v1";
+  var mem = {}; // fallback si localStorage indisponible
+  var storageOK = true;
+  try {
+    var t = "__t__"; localStorage.setItem(t,"1"); localStorage.removeItem(t);
+  } catch(e){ storageOK = false; }
+
+  // Demande au navigateur de ne jamais purger automatiquement le stockage de cette page
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().then(function(granted){
+      if(!granted){ console.log("Persistance du stockage non garantie par le navigateur"); }
+    }).catch(function(){});
+  }
+
+  function load(key, def){
+    if(def === undefined) def = [];
+    try{
+      if(storageOK){
+        var raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : def;
+      }
+      return mem[key] || def;
+    }catch(e){ return mem[key] || def; }
+  }
+  function save(key, arr){
+    try{
+      if(storageOK){ localStorage.setItem(key, JSON.stringify(arr)); }
+      else { mem[key] = arr; showToast("⚠ Stockage local indisponible, données en mémoire seulement"); }
+    }catch(e){ mem[key] = arr; showToast("⚠ Erreur de sauvegarde"); }
+  }
+
+  var visites = load(STORAGE_V);
+  var carburant = load(STORAGE_C);
+  var clients = load(STORAGE_CLI, {}); // objet { "Nom client": {lat, lon} }
+  var remorques = load(STORAGE_R);
+  var immats = load(STORAGE_IMMAT, []); // liste des immatriculations déjà saisies
+  var vehicules = load(STORAGE_VEHICULES, []); // liste des immatriculations véhicules (carburant / tracteur)
+  var tracteurs = load(STORAGE_TRACTEUR, []);
+  var chargements = load(STORAGE_CG);
+  var dechargements = load(STORAGE_DC);
+  var transports = load(STORAGE_TR, []);
+
+  // Normalise les entrées enregistrées avec l'ancien schéma de palettes (7 champs, v3.0/v3.1)
+  // vers le nouveau schéma simplifié (3 champs par partie). Idempotent et sans perte.
+  function normalizeTransportPaletteFields(){
+    var changed = false;
+    transports.forEach(function(e){
+      if(e.paletteEntreeExp == null && e.paletteChargeeExp != null){ e.paletteEntreeExp = e.paletteChargeeExp; changed = true; }
+      if(e.paletteSortieExp == null && e.paletteRendueExp != null){ e.paletteSortieExp = e.paletteRendueExp; changed = true; }
+      if(e.paletteEntreeDest == null && e.paletteLivreeDest != null){ e.paletteEntreeDest = e.paletteLivreeDest; changed = true; }
+      if(e.paletteSortieDest == null && e.paletteRendueDest != null){ e.paletteSortieDest = e.paletteRendueDest; changed = true; }
+      if(e.paletteNonRendueDest == null && e.paletteNonRendue != null){ e.paletteNonRendueDest = e.paletteNonRendue; changed = true; }
+    });
+    if(changed) save(STORAGE_TR, transports);
+    return changed;
+  }
+
+  // Migration ponctuelle : convertit l'ancien historique Chargement/Déchargement séparé
+  // (avant la fusion des deux onglets) en entrées du nouveau module fusionné.
+  // Idempotent : peut être appelée plusieurs fois sans créer de doublons (basé sur l'id).
+  function migrateLegacyChargementsDechargements(){
+    var existingIds = {};
+    transports.forEach(function(t){ existingIds[t.id] = true; });
+    var added = 0;
+
+    (chargements || []).forEach(function(c){
+      var newId = "cg-" + c.id;
+      if(existingIds[newId]) return;
+      var entry = {
+        id: newId,
+        expediteur: c.party || "",
+        destinataire: "",
+        remorque: c.remorque || "",
+        arriveeExp: c.arrivee || "",
+        departExp: c.depart || "",
+        gpsExpLat: c.gpsLat || "",
+        gpsExpLon: c.gpsLon || "",
+        arriveeDest: "",
+        departDest: "",
+        gpsDestLat: "",
+        gpsDestLon: "",
+        observation: c.observation || "",
+        lettreVoiture: c.lettreVoiture || "",
+        commande: c.commande || "",
+        frc: c.frc || "",
+        temperature: c.temperature || "",
+        scelleDepart: c.scelleDepart || "",
+        scelleArrivee: c.scelleArrivee || null,
+        photos: c.photos || [],
+        paletteEntreeExp: c.paletteChargeeExp != null ? c.paletteChargeeExp : null,
+        paletteSortieExp: c.paletteRendueExp != null ? c.paletteRendueExp : null,
+        paletteNonRendueExp: null,
+        paletteEntreeDest: c.paletteLivreeDest != null ? c.paletteLivreeDest : null,
+        paletteSortieDest: c.paletteRendueDest != null ? c.paletteRendueDest : null,
+        paletteNonRendueDest: c.paletteNonRendue != null ? c.paletteNonRendue : null
+      };
+      transports.push(entry);
+      existingIds[newId] = true;
+      added++;
+      if(c.party){
+        if(c.gpsLat && c.gpsLon){ expediteurs[c.party] = { lat: c.gpsLat, lon: c.gpsLon }; }
+        else if(!expediteurs.hasOwnProperty(c.party)){ expediteurs[c.party] = { lat: "", lon: "" }; }
+      }
+    });
+
+    (dechargements || []).forEach(function(d){
+      var newId = "dc-" + d.id;
+      if(existingIds[newId]) return;
+      var entry = {
+        id: newId,
+        expediteur: "",
+        destinataire: d.party || "",
+        remorque: d.remorque || "",
+        arriveeExp: "",
+        departExp: "",
+        gpsExpLat: "",
+        gpsExpLon: "",
+        arriveeDest: d.arrivee || "",
+        departDest: d.depart || "",
+        gpsDestLat: d.gpsLat || "",
+        gpsDestLon: d.gpsLon || "",
+        observation: d.observation || "",
+        lettreVoiture: d.lettreVoiture || "",
+        commande: d.commande || "",
+        frc: d.frc || "",
+        temperature: d.temperature || "",
+        scelleDepart: d.scelleDepart || "",
+        scelleArrivee: d.scelleArrivee || null,
+        photos: d.photos || [],
+        paletteEntreeExp: null,
+        paletteSortieExp: null,
+        paletteNonRendueExp: null,
+        paletteEntreeDest: d.paletteLivreeDest != null ? d.paletteLivreeDest : null,
+        paletteSortieDest: d.paletteRendueDest != null ? d.paletteRendueDest : null,
+        paletteNonRendueDest: d.paletteNonRendue != null ? d.paletteNonRendue : null
+      };
+      transports.push(entry);
+      existingIds[newId] = true;
+      added++;
+      if(d.party){
+        if(d.gpsLat && d.gpsLon){ destinataires[d.party] = { lat: d.gpsLat, lon: d.gpsLon }; }
+        else if(!destinataires.hasOwnProperty(d.party)){ destinataires[d.party] = { lat: "", lon: "" }; }
+      }
+    });
+
+    if(added > 0){
+      save(STORAGE_TR, transports);
+      save(STORAGE_EXPED, expediteurs);
+      save(STORAGE_DEST, destinataires);
+    }
+    return added;
+  }
+  var expediteurs = load(STORAGE_EXPED, {});
+  var destinataires = load(STORAGE_DEST, {});
+
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+  function showToast(msg){
+    var el = document.getElementById("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    setTimeout(function(){ el.classList.remove("show"); }, 2200);
+  }
+
+  function fmtDT(iso){
+    if(!iso) return "—";
+    var d = new Date(iso);
+    if(isNaN(d)) return iso;
+    var p = function(n){ return String(n).padStart(2,"0"); };
+    return p(d.getDate())+"/"+p(d.getMonth()+1)+"/"+d.getFullYear()+" "+p(d.getHours())+":"+p(d.getMinutes());
+  }
+
+  function nowLocalInputValue(){
+    var d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0,16);
+  }
+
+  // ==== MODULE PHOTOS (réutilisable dans toutes les fenêtres Observation) ====
+  var photoDrafts = {};
+
+  function compressImage(file, callback){
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var img = new Image();
+      img.onload = function(){
+        var maxDim = 1280;
+        var w = img.width, h = img.height;
+        if(w > maxDim || h > maxDim){
+          if(w > h){ h = Math.round(h * maxDim / w); w = maxDim; }
+          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        var canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        callback(canvas.toDataURL("image/jpeg", 0.7));
+      };
+      img.onerror = function(){ callback(null); };
+      img.src = ev.target.result;
+    };
+    reader.onerror = function(){ callback(null); };
+    reader.readAsDataURL(file);
+  }
+
+  function openLightbox(src){
+    document.getElementById("lightbox-img").src = src;
+    document.getElementById("lightbox").classList.add("open");
+  }
+
+  function renderPhotoThumbs(prefix){
+    var box = document.getElementById(prefix + "-photos-preview");
+    if(!box) return;
+    var arr = photoDrafts[prefix] || [];
+    box.innerHTML = arr.map(function(src, i){
+      return '<div class="photo-thumb">' +
+        '<img src="' + src + '" class="photo-thumb-img" data-full="' + src + '">' +
+        '<button type="button" class="photo-thumb-rm" data-prefix="' + prefix + '" data-idx="' + i + '">×</button>' +
+      '</div>';
+    }).join("");
+    box.querySelectorAll(".photo-thumb-rm").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var p = btn.dataset.prefix;
+        var idx = parseInt(btn.dataset.idx, 10);
+        photoDrafts[p].splice(idx, 1);
+        renderPhotoThumbs(p);
+      });
+    });
+    box.querySelectorAll(".photo-thumb-img").forEach(function(img){
+      img.addEventListener("click", function(){ openLightbox(img.dataset.full); });
+    });
+  }
+
+  function setupPhotoField(prefix){
+    photoDrafts[prefix] = [];
+    var btn = document.getElementById(prefix + "-photos-btn");
+    var input = document.getElementById(prefix + "-photos-input");
+    if(!btn || !input) return;
+    btn.addEventListener("click", function(){ input.click(); });
+    input.addEventListener("change", function(){
+      var files = Array.prototype.slice.call(input.files || []);
+      if(!files.length) return;
+      var remaining = files.length;
+      files.forEach(function(file){
+        compressImage(file, function(dataUrl){
+          if(dataUrl){ photoDrafts[prefix].push(dataUrl); }
+          remaining--;
+          if(remaining === 0){ renderPhotoThumbs(prefix); }
+        });
+      });
+      input.value = "";
+    });
+  }
+
+  function getPhotos(prefix){ return (photoDrafts[prefix] || []).slice(); }
+  function setPhotos(prefix, arr){ photoDrafts[prefix] = (arr || []).slice(); renderPhotoThumbs(prefix); }
+  function resetPhotos(prefix){ photoDrafts[prefix] = []; renderPhotoThumbs(prefix); }
+
+  function renderEntryPhotos(photos){
+    if(!photos || !photos.length) return "";
+    return '<div class="photo-thumbs entry-photos">' +
+      photos.map(function(src){
+        return '<div class="photo-thumb"><img src="' + src + '" class="photo-thumb-img" data-full="' + src + '"></div>';
+      }).join("") +
+    '</div>';
+  }
+
+  ["tr","r","t"].forEach(setupPhotoField);
+
+  var lightboxEl = document.getElementById("lightbox");
+  lightboxEl.addEventListener("click", function(){ lightboxEl.classList.remove("open"); });
+  document.addEventListener("click", function(e){
+    if(e.target.classList && e.target.classList.contains("photo-thumb-img")){
+      document.getElementById("lightbox-img").src = e.target.dataset.full;
+      lightboxEl.classList.add("open");
+    }
+  });
+  // ==== FIN MODULE PHOTOS ====
+
+  // ---- Tabs ----
+  var tabs = document.querySelectorAll(".tab");
+  tabs.forEach(function(tab){
+    tab.addEventListener("click", function(){
+      tabs.forEach(function(x){ x.classList.remove("active"); });
+      tab.classList.add("active");
+      document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
+      document.getElementById("view-" + tab.dataset.tab).classList.add("active");
+      // Remonte en haut de page : sinon, si on était descendu dans l'onglet précédent,
+      // le début du nouvel onglet peut se retrouver caché/inaccessible sous l'en-tête collant.
+      window.scrollTo({ top: 0, behavior: "auto" });
+    });
+  });
+
+  // ---- Bouton "Maintenant" ----
+  document.querySelectorAll(".btn-now").forEach(function(btn){
+    if(!btn.dataset.target) return;
+    btn.addEventListener("click", function(){
+      var target = document.getElementById(btn.dataset.target);
+      if(!target){ showToast("⚠ Champ introuvable : " + btn.dataset.target); return; }
+      var val = nowLocalInputValue();
+
+      // Sur certains navigateurs Android, remplir un champ datetime-local en JS
+      // ne rafraîchit pas visuellement le widget natif. On force le
+      // réaffichage en re-déclenchant le rendu du champ (bascule de type).
+      var originalType = target.type;
+      target.type = "text";
+      target.value = val;
+      // force le navigateur à recalculer l'affichage avant de repasser en datetime-local
+      void target.offsetHeight;
+      target.type = originalType;
+      target.value = val;
+
+      target.dispatchEvent(new Event("input", { bubbles: true }));
+      target.dispatchEvent(new Event("change", { bubbles: true }));
+      showToast("Date/heure mise à " + val.replace("T", " "));
+    });
+  });
+
+  // Champ Date du Tracteur : saisie manuelle texte auto-formatée (comme le champ FRC),
+  // pour ne dépendre d'aucun composant natif de date/heure défaillant sur certains téléphones.
+  document.getElementById("t-date-date").addEventListener("input", function(){
+    var digits = this.value.replace(/[^0-9]/g, "").slice(0, 8);
+    var out = digits.slice(0,2);
+    if(digits.length > 2) out += "/" + digits.slice(2,4);
+    if(digits.length > 4) out += "/" + digits.slice(4,8);
+    this.value = out;
+  });
+  document.getElementById("t-date-time").addEventListener("input", function(){
+    var digits = this.value.replace(/[^0-9]/g, "").slice(0, 4);
+    var out = digits.slice(0,2);
+    if(digits.length > 2) out += ":" + digits.slice(2,4);
+    this.value = out;
+  });
+
+  function tDateToISO(dateStr, timeStr){
+    var dp = (dateStr || "").split("/");
+    if(dp.length !== 3 || dp[0].length !== 2 || dp[1].length !== 2 || dp[2].length !== 4) return "";
+    var iso = dp[2] + "-" + dp[1] + "-" + dp[0];
+    if(timeStr && /^\d{2}:\d{2}$/.test(timeStr)){ iso += "T" + timeStr; }
+    return iso;
+  }
+  function isoToTDate(iso){
+    if(!iso) return { date: "", time: "" };
+    var parts = iso.split("T");
+    var dp = parts[0].split("-");
+    return {
+      date: (dp.length === 3) ? (dp[2] + "/" + dp[1] + "/" + dp[0]) : "",
+      time: parts[1] || ""
+    };
+  }
+
+  var tDateNowBtn = document.getElementById("t-date-now");
+  if(tDateNowBtn){
+    tDateNowBtn.addEventListener("click", function(){
+      var d = new Date();
+      var p = function(n){ return String(n).padStart(2,"0"); };
+      var dateStr = p(d.getDate()) + "/" + p(d.getMonth()+1) + "/" + d.getFullYear();
+      var timeStr = p(d.getHours()) + ":" + p(d.getMinutes());
+      document.getElementById("t-date-date").value = dateStr;
+      document.getElementById("t-date-time").value = timeStr;
+      showToast("Date/heure mise à " + dateStr + " " + timeStr);
+    });
+  }
+
+  // ==== MODULE REMORQUES ====
+
+  function renderImmatList(){
+    var targets = ["r-immat-select", "tr-remorque-select"];
+    var sorted = immats.slice().sort(function(a,b){ return a.localeCompare(b, "fr", {sensitivity:"base"}); });
+    targets.forEach(function(id){
+      var sel = document.getElementById(id);
+      if(!sel) return;
+      var current = sel.value;
+      sel.innerHTML = '<option value="">-- Sélectionner une immatriculation --</option>' +
+        sorted.map(function(n){ return '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + '</option>'; }).join("");
+      if(sorted.indexOf(current) !== -1) sel.value = current;
+    });
+  }
+
+  function rememberImmat(name){
+    if(!name || immats.indexOf(name) !== -1) return;
+    immats.push(name);
+    save(STORAGE_IMMAT, immats);
+    renderImmatList();
+  }
+
+  document.getElementById("r-immat-select").addEventListener("change", function(){
+    if(this.value) document.getElementById("r-immat").value = this.value;
+  });
+
+  document.getElementById("tr-remorque-select").addEventListener("change", function(){
+    if(this.value) document.getElementById("tr-remorque").value = this.value;
+  });
+
+  document.getElementById("r-date-frc-today").addEventListener("click", function(){
+    var d = new Date();
+    var p = function(n){ return String(n).padStart(2,"0"); };
+    document.getElementById("r-date-frc").value = p(d.getMonth()+1) + "/" + d.getFullYear();
+  });
+
+  document.getElementById("r-date-frc").addEventListener("input", function(){
+    var digits = this.value.replace(/[^0-9]/g, "").slice(0, 6);
+    if(digits.length > 2){
+      this.value = digits.slice(0,2) + "/" + digits.slice(2);
+    } else {
+      this.value = digits;
+    }
+  });
+
+  var editingRemorqueId = null;
+
+  function resetRemorqueForm(){
+    document.getElementById("r-type").value = "Accrochage";
+    document.getElementById("r-immat-select").value = "";
+    document.getElementById("r-immat").value = "";
+    document.getElementById("r-lieu").value = "";
+    document.getElementById("r-date").value = "";
+    document.getElementById("r-date-frc").value = "";
+    document.getElementById("r-observation").value = "";
+    resetPhotos("r");
+    editingRemorqueId = null;
+    document.getElementById("r-save").textContent = "Enregistrer l'événement";
+    document.getElementById("r-cancel-edit").style.display = "none";
+  }
+
+  function loadRemorqueIntoForm(entry){
+    editingRemorqueId = entry.id;
+    document.getElementById("r-type").value = entry.type || "Accrochage";
+    document.getElementById("r-immat-select").value = "";
+    document.getElementById("r-immat").value = entry.immat || "";
+    document.getElementById("r-lieu").value = entry.lieu || "";
+    document.getElementById("r-date").value = entry.date || "";
+    document.getElementById("r-date-frc").value = entry.dateFrc || "";
+    document.getElementById("r-observation").value = entry.observation || "";
+    setPhotos("r", entry.photos);
+    document.getElementById("r-save").textContent = "Mettre à jour l'événement";
+    document.getElementById("r-cancel-edit").style.display = "block";
+    document.querySelector('.tab[data-tab="remorques"]').click();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  document.getElementById("r-save").addEventListener("click", function(){
+    var immat = document.getElementById("r-immat").value.trim();
+    if(!immat){ showToast("L'immatriculation est requise"); return; }
+
+    var entry = {
+      id: editingRemorqueId || uid(),
+      type: document.getElementById("r-type").value,
+      immat: immat,
+      lieu: document.getElementById("r-lieu").value.trim(),
+      date: document.getElementById("r-date").value,
+      dateFrc: document.getElementById("r-date-frc").value,
+      observation: document.getElementById("r-observation").value.trim(),
+      photos: getPhotos("r")
+    };
+
+    if(editingRemorqueId){
+      var idx = remorques.findIndex(function(r){ return r.id === editingRemorqueId; });
+      if(idx !== -1){ remorques[idx] = entry; } else { remorques.unshift(entry); }
+      showToast("Événement mis à jour");
+    } else {
+      remorques.unshift(entry);
+      showToast("Événement enregistré");
+    }
+
+    save(STORAGE_R, remorques);
+    rememberImmat(immat);
+    renderRemorques();
+    resetRemorqueForm();
+  });
+
+  document.getElementById("r-cancel-edit").addEventListener("click", function(){
+    resetRemorqueForm();
+  });
+
+  function renderRemorqueEntry(e){
+    return '' +
+      '<div class="entry">' +
+        '<div class="entry-head">' +
+          '<span class="entry-name">' + escapeHtml(e.type) + '</span>' +
+          '<span>' +
+            '<button class="entry-edit" data-id="' + e.id + '" style="margin-right:6px;color:var(--amber);background:none;font-size:.8rem;font-weight:700;font-family:var(--mono);padding:4px 6px;">Modifier</button>' +
+            '<button class="entry-del" data-id="' + e.id + '">Suppr.</button>' +
+          '</span>' +
+        '</div>' +
+        '<div class="entry-grid">' +
+          '<div>Lieu<br><b>' + (e.lieu || "—") + '</b></div>' +
+          '<div>Date / heure<br><b>' + fmtDT(e.date) + '</b></div>' +
+          '<div>Date FRC<br><b>' + (e.dateFrc || "—") + '</b></div>' +
+          (e.observation ? '<div class="full">Observation<br><b>' + escapeHtml(e.observation) + '</b></div>' : '') +
+        '</div>' +
+        renderEntryPhotos(e.photos) +
+      '</div>';
+  }
+
+  function renderRemorques(){
+    var list = document.getElementById("r-list");
+    if(!remorques.length){
+      list.innerHTML = '<div class="empty">Aucun événement enregistré</div>';
+      return;
+    }
+
+    var groups = {};
+    var order = [];
+    remorques.forEach(function(e){
+      if(!groups[e.immat]){ groups[e.immat] = []; order.push(e.immat); }
+      groups[e.immat].push(e);
+    });
+    order.sort(function(a,b){ return a.localeCompare(b, "fr", {sensitivity:"base"}); });
+
+    list.innerHTML = order.map(function(immat){
+      var entries = groups[immat];
+      var lastDate = fmtDT(entries[0].date);
+      return '' +
+        '<div class="accordion" data-immat="' + escapeHtml(immat) + '">' +
+          '<button class="accordion-head" type="button">' +
+            '<span class="accordion-title">' + escapeHtml(immat) + '<span class="accordion-count">' + entries.length + '</span></span>' +
+            '<span class="accordion-meta">Dernier évén. ' + lastDate + ' <span class="chevron">▾</span></span>' +
+          '</button>' +
+          '<div class="accordion-body">' +
+            entries.map(function(e){ return renderRemorqueEntry(e); }).join("") +
+          '</div>' +
+        '</div>';
+    }).join("");
+
+    list.querySelectorAll(".accordion-head").forEach(function(head){
+      head.addEventListener("click", function(){
+        head.parentElement.classList.toggle("open");
+      });
+    });
+
+    list.querySelectorAll(".entry-edit").forEach(function(btn){
+      btn.addEventListener("click", function(e){
+        e.stopPropagation();
+        var entry = remorques.find(function(r){ return r.id === btn.dataset.id; });
+        if(entry) loadRemorqueIntoForm(entry);
+      });
+    });
+
+    list.querySelectorAll(".entry-del").forEach(function(btn){
+      btn.addEventListener("click", function(e){
+        e.stopPropagation();
+        remorques = remorques.filter(function(r){ return r.id !== btn.dataset.id; });
+        save(STORAGE_R, remorques);
+        renderRemorques();
+      });
+    });
+
+    list.querySelectorAll(".photo-thumb-img").forEach(function(img){
+      img.addEventListener("click", function(){ openLightbox(img.dataset.full); });
+    });
+  }
+
+  // ==== FIN MODULE REMORQUES ====
+
+  // ==== REGISTRE VÉHICULES (immatriculations partagées Carburant / Tracteur) ====
+
+  function renderVehiculeLists(){
+    var targets = [
+      { id: "c-vehicule-select", placeholder: "-- Sélectionner une immatriculation --" },
+      { id: "t-vehicule-select", placeholder: "-- Sélectionner une immatriculation --" },
+      { id: "c-filter-vehicule", placeholder: "-- Tous les véhicules --" }
+    ];
+    var sorted = vehicules.slice().sort(function(a,b){ return a.localeCompare(b, "fr", {sensitivity:"base"}); });
+    targets.forEach(function(t){
+      var sel = document.getElementById(t.id);
+      if(!sel) return;
+      var current = sel.value;
+      sel.innerHTML = '<option value="">' + t.placeholder + '</option>' +
+        sorted.map(function(n){ return '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + '</option>'; }).join("");
+      if(sorted.indexOf(current) !== -1) sel.value = current;
+    });
+  }
+
+  function rememberVehicule(name){
+    if(!name || vehicules.indexOf(name) !== -1) return;
+    vehicules.push(name);
+    save(STORAGE_VEHICULES, vehicules);
+    renderVehiculeLists();
+  }
+
+  document.getElementById("c-vehicule-select").addEventListener("change", function(){
+    if(this.value) document.getElementById("c-vehicule").value = this.value;
+  });
+
+  document.getElementById("t-vehicule-select").addEventListener("change", function(){
+    if(this.value) document.getElementById("t-vehicule").value = this.value;
+  });
+
+  document.getElementById("c-filter-vehicule").addEventListener("change", function(){
+    renderCarburant();
+  });
+
+  // ==== FIN REGISTRE VÉHICULES ====
+
+  // ==== MODULE TRACTEUR ====
+
+  var editingTracteurId = null;
+
+  function resetTracteurForm(){
+    document.getElementById("t-vehicule-select").value = "";
+    document.getElementById("t-vehicule").value = "";
+    document.getElementById("t-date-date").value = "";
+    document.getElementById("t-date-time").value = "";
+    document.getElementById("t-km").value = "";
+    document.getElementById("t-entretien").value = "";
+    document.getElementById("t-reparation").value = "";
+    document.getElementById("t-observation").value = "";
+    resetPhotos("t");
+    editingTracteurId = null;
+    document.getElementById("t-save").textContent = "Enregistrer";
+    document.getElementById("t-cancel-edit").style.display = "none";
+  }
+
+  function loadTracteurIntoForm(entry){
+    editingTracteurId = entry.id;
+    document.getElementById("t-vehicule-select").value = "";
+    document.getElementById("t-vehicule").value = entry.vehicule || "";
+    var dtParts = isoToTDate(entry.date);
+    document.getElementById("t-date-date").value = dtParts.date;
+    document.getElementById("t-date-time").value = dtParts.time;
+    document.getElementById("t-km").value = (entry.km !== null && entry.km !== undefined) ? entry.km : "";
+    document.getElementById("t-entretien").value = entry.entretien || "";
+    document.getElementById("t-reparation").value = entry.reparation || "";
+    document.getElementById("t-observation").value = entry.observation || "";
+    setPhotos("t", entry.photos);
+    document.getElementById("t-save").textContent = "Mettre à jour";
+    document.getElementById("t-cancel-edit").style.display = "block";
+    document.querySelector('.tab[data-tab="tracteur"]').click();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  document.getElementById("t-save").addEventListener("click", function(){
+    var vehicule = document.getElementById("t-vehicule").value.trim();
+    var kmRaw = document.getElementById("t-km").value;
+    var km = kmRaw === "" ? null : parseFloat(kmRaw);
+    var entretien = document.getElementById("t-entretien").value.trim();
+    var reparation = document.getElementById("t-reparation").value.trim();
+    if(!vehicule){ showToast("L'immatriculation est requise"); return; }
+    if(!entretien && !reparation){ showToast("Renseigne au moins l'entretien ou la réparation"); return; }
+
+    var entry = {
+      id: editingTracteurId || uid(),
+      vehicule: vehicule,
+      date: tDateToISO(document.getElementById("t-date-date").value, document.getElementById("t-date-time").value),
+      km: (km !== null && !isNaN(km)) ? km : null,
+      entretien: entretien,
+      reparation: reparation,
+      observation: document.getElementById("t-observation").value.trim(),
+      photos: getPhotos("t")
+    };
+
+    if(editingTracteurId){
+      var idx = tracteurs.findIndex(function(t){ return t.id === editingTracteurId; });
+      if(idx !== -1){ tracteurs[idx] = entry; } else { tracteurs.unshift(entry); }
+      showToast("Intervention mise à jour");
+    } else {
+      tracteurs.unshift(entry);
+      showToast("Intervention enregistrée");
+    }
+
+    save(STORAGE_TRACTEUR, tracteurs);
+    rememberVehicule(vehicule);
+    renderTracteurs();
+    resetTracteurForm();
+  });
+
+  document.getElementById("t-cancel-edit").addEventListener("click", function(){
+    resetTracteurForm();
+  });
+
+  function renderTracteurEntry(e){
+    return '' +
+      '<div class="entry">' +
+        '<div class="entry-head">' +
+          '<span class="entry-name">' + fmtDT(e.date) + '</span>' +
+          '<span>' +
+            '<button class="entry-edit" data-id="' + e.id + '" style="margin-right:6px;color:var(--amber);background:none;font-size:.8rem;font-weight:700;font-family:var(--mono);padding:4px 6px;">Modifier</button>' +
+            '<button class="entry-del" data-id="' + e.id + '">Suppr.</button>' +
+          '</span>' +
+        '</div>' +
+        '<div class="entry-grid">' +
+          '<div>Kilométrage<br><b>' + (e.km !== null && e.km !== undefined ? e.km + ' km' : "—") + '</b></div>' +
+          '<div>Entretien<br><b>' + (e.entretien ? escapeHtml(e.entretien) : "—") + '</b></div>' +
+          '<div>Réparation<br><b>' + (e.reparation ? escapeHtml(e.reparation) : "—") + '</b></div>' +
+          (e.observation ? '<div class="full">Observation<br><b>' + escapeHtml(e.observation) + '</b></div>' : '') +
+        '</div>' +
+        renderEntryPhotos(e.photos) +
+      '</div>';
+  }
+
+  function renderTracteurs(){
+    var list = document.getElementById("t-list");
+    if(!tracteurs.length){
+      list.innerHTML = '<div class="empty">Aucune intervention enregistrée</div>';
+      return;
+    }
+
+    var groups = {};
+    var order = [];
+    tracteurs.forEach(function(e){
+      var key = e.vehicule || "Sans immatriculation";
+      if(!groups[key]){ groups[key] = []; order.push(key); }
+      groups[key].push(e);
+    });
+    order.sort(function(a,b){ return a.localeCompare(b, "fr", {sensitivity:"base"}); });
+
+    list.innerHTML = order.map(function(vehiculeName){
+      var entries = groups[vehiculeName];
+      var lastDate = fmtDT(entries[0].date);
+      return '' +
+        '<div class="accordion" data-vehicule="' + escapeHtml(vehiculeName) + '">' +
+          '<button class="accordion-head" type="button">' +
+            '<span class="accordion-title">' + escapeHtml(vehiculeName) + '<span class="accordion-count">' + entries.length + '</span></span>' +
+            '<span class="accordion-meta">Dernière interv. ' + lastDate + ' <span class="chevron">▾</span></span>' +
+          '</button>' +
+          '<div class="accordion-body">' +
+            entries.map(function(e){ return renderTracteurEntry(e); }).join("") +
+          '</div>' +
+        '</div>';
+    }).join("");
+
+    list.querySelectorAll(".accordion-head").forEach(function(head){
+      head.addEventListener("click", function(){
+        head.parentElement.classList.toggle("open");
+      });
+    });
+
+    list.querySelectorAll(".entry-edit").forEach(function(btn){
+      btn.addEventListener("click", function(e){
+        e.stopPropagation();
+        var entry = tracteurs.find(function(t){ return t.id === btn.dataset.id; });
+        if(entry) loadTracteurIntoForm(entry);
+      });
+    });
+
+    list.querySelectorAll(".entry-del").forEach(function(btn){
+      btn.addEventListener("click", function(e){
+        e.stopPropagation();
+        tracteurs = tracteurs.filter(function(t){ return t.id !== btn.dataset.id; });
+        save(STORAGE_TRACTEUR, tracteurs);
+        renderTracteurs();
+      });
+    });
+
+    list.querySelectorAll(".photo-thumb-img").forEach(function(img){
+      img.addEventListener("click", function(){ openLightbox(img.dataset.full); });
+    });
+  }
+
+  // ==== FIN MODULE TRACTEUR ====
+
+  // ---- Carburant ----
+  var editingCarburantId = null;
+
+  function resetCarburantForm(){
+    document.getElementById("c-vehicule-select").value = "";
+    document.getElementById("c-vehicule").value = "";
+    document.getElementById("c-station").value = "";
+    document.getElementById("c-date").value = "";
+    document.getElementById("c-km").value = "";
+    document.getElementById("c-litres").value = "";
+    editingCarburantId = null;
+    document.getElementById("c-save").textContent = "Enregistrer le plein";
+    document.getElementById("c-cancel-edit").style.display = "none";
+  }
+
+  function loadCarburantIntoForm(entry){
+    editingCarburantId = entry.id;
+    document.getElementById("c-vehicule-select").value = "";
+    document.getElementById("c-vehicule").value = entry.vehicule || "";
+    document.getElementById("c-station").value = entry.station || "";
+    document.getElementById("c-date").value = entry.date || "";
+    document.getElementById("c-km").value = entry.km;
+    document.getElementById("c-litres").value = entry.litres;
+    document.getElementById("c-save").textContent = "Mettre à jour le plein";
+    document.getElementById("c-cancel-edit").style.display = "block";
+    document.querySelector('.tab[data-tab="carburant"]').click();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  document.getElementById("c-cancel-edit").addEventListener("click", function(){
+    resetCarburantForm();
+  });
+
+  document.getElementById("c-save").addEventListener("click", function(){
+    var vehicule = document.getElementById("c-vehicule").value.trim();
+    var station = document.getElementById("c-station").value.trim();
+    var km = parseFloat(document.getElementById("c-km").value);
+    var litres = parseFloat(document.getElementById("c-litres").value);
+    var date = document.getElementById("c-date").value;
+
+    if(!vehicule){ showToast("L'immatriculation du véhicule est requise"); return; }
+    if(!station){ showToast("Le nom de la station est requis"); return; }
+    if(isNaN(km)){ showToast("Le kilométrage est requis"); return; }
+    if(isNaN(litres)){ showToast("Le nombre de litres est requis"); return; }
+
+    // consommation moyenne indépendante par véhicule = calculée par rapport au plein précédent DU MÊME véhicule (hors entrée en cours de modification)
+    var sameVehicule = carburant.filter(function(e){ return e.vehicule === vehicule && e.id !== editingCarburantId; });
+    var sorted = sameVehicule.slice().sort(function(a,b){ return a.km - b.km; });
+    var prev = null;
+    for(var i = sorted.length - 1; i >= 0; i--){
+      if(sorted[i].km < km){ prev = sorted[i]; break; }
+    }
+    var conso = null;
+    if(prev){
+      var distance = km - prev.km;
+      if(distance > 0){ conso = (litres / distance) * 100; }
+    }
+
+    var entry = {
+      id: editingCarburantId || uid(),
+      vehicule: vehicule,
+      station: station,
+      date: date,
+      km: km,
+      litres: litres,
+      conso: conso
+    };
+
+    if(editingCarburantId){
+      var idx = carburant.findIndex(function(c){ return c.id === editingCarburantId; });
+      if(idx !== -1){ carburant[idx] = entry; } else { carburant.push(entry); }
+      showToast("Plein mis à jour");
+    } else {
+      carburant.push(entry);
+      showToast("Plein enregistré");
+    }
+
+    save(STORAGE_C, carburant);
+    rememberVehicule(vehicule);
+    renderCarburant();
+    resetCarburantForm();
+  });
+
+  function renderCarburant(){
+    var list = document.getElementById("c-list");
+    var filterVehicule = document.getElementById("c-filter-vehicule").value;
+    var filtered = filterVehicule ? carburant.filter(function(e){ return e.vehicule === filterVehicule; }) : carburant;
+
+    document.getElementById("c-stat-count").textContent = filtered.length;
+    var withConso = filtered.filter(function(e){ return e.conso !== null && e.conso !== undefined; });
+    if(withConso.length){
+      var avg = withConso.reduce(function(s,e){ return s + e.conso; }, 0) / withConso.length;
+      document.getElementById("c-stat-conso").textContent = avg.toFixed(1);
+    } else {
+      document.getElementById("c-stat-conso").textContent = "—";
+    }
+
+    if(!filtered.length){
+      list.innerHTML = '<div class="empty">Aucune prise de carburant enregistrée</div>';
+      return;
+    }
+
+    // Regroupement par véhicule (consommation indépendante par véhicule)
+    var groups = {};
+    var order = [];
+    filtered.forEach(function(e){
+      var key = e.vehicule || "Sans immatriculation";
+      if(!groups[key]){ groups[key] = []; order.push(key); }
+      groups[key].push(e);
+    });
+    order.sort(function(a,b){ return a.localeCompare(b, "fr", {sensitivity:"base"}); });
+
+    list.innerHTML = order.map(function(vehiculeName){
+      var entries = groups[vehiculeName].slice().sort(function(a,b){ return b.km - a.km; });
+      var lastDate = fmtDT(entries[0].date);
+      var withC = entries.filter(function(e){ return e.conso != null; });
+      var avgV = withC.length ? (withC.reduce(function(s,e){ return s + e.conso; }, 0) / withC.length).toFixed(1) : "—";
+      return '' +
+        '<div class="accordion" data-vehicule="' + escapeHtml(vehiculeName) + '">' +
+          '<button class="accordion-head" type="button">' +
+            '<span class="accordion-title">' + escapeHtml(vehiculeName) + '<span class="accordion-count">' + entries.length + '</span></span>' +
+            '<span class="accordion-meta">Moy. ' + avgV + ' L/100km · Dernier ' + lastDate + ' <span class="chevron">▾</span></span>' +
+          '</button>' +
+          '<div class="accordion-body">' +
+            entries.map(function(e){ return renderFuelEntry(e); }).join("") +
+          '</div>' +
+        '</div>';
+    }).join("");
+
+    list.querySelectorAll(".accordion-head").forEach(function(head){
+      head.addEventListener("click", function(){
+        head.parentElement.classList.toggle("open");
+      });
+    });
+
+    list.querySelectorAll(".entry-edit").forEach(function(btn){
+      btn.addEventListener("click", function(e){
+        e.stopPropagation();
+        var entry = carburant.find(function(c){ return c.id === btn.dataset.id; });
+        if(entry) loadCarburantIntoForm(entry);
+      });
+    });
+
+    list.querySelectorAll(".entry-del").forEach(function(btn){
+      btn.addEventListener("click", function(e){
+        e.stopPropagation();
+        carburant = carburant.filter(function(c){ return c.id !== btn.dataset.id; });
+        save(STORAGE_C, carburant);
+        renderCarburant();
+      });
+    });
+  }
+
+  function renderFuelEntry(e){
+    return '' +
+      '<div class="entry">' +
+        '<div class="entry-head">' +
+          '<span class="entry-name">' + fmtDT(e.date) + '</span>' +
+          '<span>' +
+            '<button class="entry-edit" data-id="' + e.id + '" style="margin-right:6px;color:var(--amber);background:none;font-size:.8rem;font-weight:700;font-family:var(--mono);padding:4px 6px;">Modifier</button>' +
+            '<button class="entry-del" data-id="' + e.id + '">Suppr.</button>' +
+          '</span>' +
+        '</div>' +
+        '<div class="entry-grid">' +
+          '<div>Station<br><b>' + escapeHtml(e.station || "—") + '</b></div>' +
+          '<div>Km<br><b>' + e.km + '</b></div>' +
+          '<div>Litres<br><b>' + e.litres + '</b></div>' +
+          '<div>Consommation<br><b>' + (e.conso != null ? e.conso.toFixed(1) + ' L/100km' : '—') + '</b></div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];
+    });
+  }
+
+  // ---- Export ----
+  function download(filename, content, mime){
+    var blob = new Blob([content], { type: mime });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function csvEscape(v){
+    if(v === null || v === undefined) return "";
+    var s = String(v);
+    if(/[",\n;]/.test(s)) s = '"' + s.replace(/"/g,'""') + '"';
+    return s;
+  }
+
+  document.getElementById("exp-v-csv").addEventListener("click", function(){
+    var headers = ["Client","Arrivee","Depart","GPS_Lat","GPS_Lon","Observation","LettreVoiture","FRC","Temperature","ScelleDepart","ScelleArrivee"];
+    var rows = visites.map(function(e){
+      return [e.client,e.arrivee,e.depart,e.gpsLat,e.gpsLon,e.observation,e.lettreVoiture,e.frc,e.temperature,e.scelleDepart,e.scelleArrivee].map(csvEscape).join(";");
+    });
+    download("visites.csv", headers.join(";") + "\n" + rows.join("\n"), "text/csv");
+  });
+  document.getElementById("exp-c-csv").addEventListener("click", function(){
+    var headers = ["Vehicule","Station","Date","Km","Litres","ConsommationL100km"];
+    var rows = carburant.map(function(e){
+      return [e.vehicule,e.station,e.date,e.km,e.litres, e.conso != null ? e.conso.toFixed(2) : ""].map(csvEscape).join(";");
+    });
+    download("carburant.csv", headers.join(";") + "\n" + rows.join("\n"), "text/csv");
+  });
+  document.getElementById("exp-t-csv").addEventListener("click", function(){
+    var headers = ["Vehicule","Date","Km","Entretien","Reparation"];
+    var rows = tracteurs.map(function(e){
+      return [e.vehicule,e.date,e.km,e.entretien,e.reparation].map(csvEscape).join(";");
+    });
+    download("tracteur.csv", headers.join(";") + "\n" + rows.join("\n"), "text/csv");
+  });
+  document.getElementById("exp-cli-csv").addEventListener("click", function(){
+    var headers = ["Client","GPS_Lat","GPS_Lon"];
+    var rows = Object.keys(clients).sort(function(a,b){ return a.localeCompare(b,"fr",{sensitivity:"base"}); }).map(function(n){
+      return [n, clients[n].lat, clients[n].lon].map(csvEscape).join(";");
+    });
+    download("clients.csv", headers.join(";") + "\n" + rows.join("\n"), "text/csv");
+  });
+  document.getElementById("exp-r-csv").addEventListener("click", function(){
+    var headers = ["Type","Immatriculation","Lieu","Date","DateFRC"];
+    var rows = remorques.map(function(e){
+      return [e.type,e.immat,e.lieu,e.date,e.dateFrc].map(csvEscape).join(";");
+    });
+    download("remorques.csv", headers.join(";") + "\n" + rows.join("\n"), "text/csv");
+  });
+
+  function exportTransportCsv(){
+    var headers = ["Expediteur","Destinataire","Remorque","ArriveeExp","DepartExp","GPS_Exp_Lat","GPS_Exp_Lon","PaletteEntreeExp","PaletteSortieExp","PaletteNonRendueExp","ArriveeDest","DepartDest","GPS_Dest_Lat","GPS_Dest_Lon","PaletteEntreeDest","PaletteSortieDest","PaletteNonRendueDest","Observation","LettreVoiture","NumeroCommande","FRC","Temperature","ScelleDepart","ScelleArrivee"];
+    var rows = transports.map(function(e){
+      return [e.expediteur,e.destinataire,e.remorque,e.arriveeExp,e.departExp,e.gpsExpLat,e.gpsExpLon,e.paletteEntreeExp,e.paletteSortieExp,e.paletteNonRendueExp,e.arriveeDest,e.departDest,e.gpsDestLat,e.gpsDestLon,e.paletteEntreeDest,e.paletteSortieDest,e.paletteNonRendueDest,e.observation,e.lettreVoiture,e.commande,e.frc,e.temperature,e.scelleDepart,e.scelleArrivee].map(csvEscape).join(";");
+    });
+    download("chargements_dechargements.csv", headers.join(";") + "\n" + rows.join("\n"), "text/csv");
+  }
+
+  document.getElementById("exp-tr-csv").addEventListener("click", exportTransportCsv);
+
+  // ---- Transfert historique Visites -> Chargement/Déchargement ----
+  document.getElementById("transfer-visites-btn").addEventListener("click", function(){
+    if(!visites.length){ showToast("Aucune visite à transférer"); return; }
+    var ok = window.confirm(
+      "Copier les " + visites.length + " visite(s) enregistrée(s) vers Chargement/Déchargement (comme expéditeur et destinataire) ?\n\nÀ ne faire qu'une seule fois pour éviter les doublons."
+    );
+    if(!ok) return;
+
+    visites.forEach(function(v){
+      var entry = {
+        id: uid(),
+        expediteur: v.client,
+        destinataire: v.client,
+        remorque: "",
+        arriveeExp: v.arrivee,
+        departExp: v.depart,
+        gpsExpLat: v.gpsLat,
+        gpsExpLon: v.gpsLon,
+        arriveeDest: v.arrivee,
+        departDest: v.depart,
+        gpsDestLat: v.gpsLat,
+        gpsDestLon: v.gpsLon,
+        observation: v.observation,
+        lettreVoiture: v.lettreVoiture,
+        commande: "",
+        frc: v.frc,
+        temperature: v.temperature,
+        scelleDepart: v.scelleDepart,
+        scelleArrivee: v.scelleArrivee,
+        photos: []
+      };
+      PALETTE_FIELDS.forEach(function(f){ entry[toCamel(f)] = null; });
+      transports.unshift(entry);
+
+      if(v.client){
+        if(v.gpsLat && v.gpsLon){
+          expediteurs[v.client] = { lat: v.gpsLat, lon: v.gpsLon };
+          destinataires[v.client] = { lat: v.gpsLat, lon: v.gpsLon };
+        } else {
+          if(!expediteurs.hasOwnProperty(v.client)) expediteurs[v.client] = { lat: "", lon: "" };
+          if(!destinataires.hasOwnProperty(v.client)) destinataires[v.client] = { lat: "", lon: "" };
+        }
+      }
+    });
+
+    save(STORAGE_TR, transports);
+    save(STORAGE_EXPED, expediteurs);
+    save(STORAGE_DEST, destinataires);
+
+    transportModule.renderList();
+    transportModule.renderPartyLists();
+
+    showToast(visites.length + " visite(s) transférée(s) vers Chargement/Déchargement");
+  });
+
+  // ---- Sauvegarde complète en un clic ----
+  document.getElementById("exp-all-btn").addEventListener("click", function(){
+    var backup = {
+      type: "svc-backup-complete",
+      date: new Date().toISOString(),
+      visites: visites,
+      carburant: carburant,
+      clients: clients,
+      remorques: remorques,
+      immats: immats,
+      vehicules: vehicules,
+      tracteurs: tracteurs,
+      chargements: chargements,
+      dechargements: dechargements,
+      transports: transports,
+      expediteurs: expediteurs,
+      destinataires: destinataires
+    };
+    var p = function(n){ return String(n).padStart(2,"0"); };
+    var d = new Date();
+    var stamp = d.getFullYear() + p(d.getMonth()+1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes());
+    download("sauvegarde-complete-" + stamp + ".json", JSON.stringify(backup, null, 2), "application/json");
+    showToast("Sauvegarde complète téléchargée");
+  });
+
+  document.getElementById("imp-all-btn").addEventListener("click", function(){
+    document.getElementById("import-file-all").click();
+  });
+  document.getElementById("import-file-all").addEventListener("change", function(e){
+    var f = e.target.files[0];
+    if(!f) return;
+    var reader = new FileReader();
+    reader.onload = function(evt){
+      try{
+        var data = JSON.parse(evt.target.result);
+        if(!data || typeof data !== "object" || !("visites" in data) || !("carburant" in data) || !("clients" in data)){
+          showToast("Ce fichier n'est pas une sauvegarde complète valide");
+          return;
+        }
+        visites = Array.isArray(data.visites) ? data.visites : [];
+        carburant = Array.isArray(data.carburant) ? data.carburant : [];
+        clients = (data.clients && typeof data.clients === "object") ? data.clients : {};
+        remorques = Array.isArray(data.remorques) ? data.remorques : [];
+        immats = Array.isArray(data.immats) ? data.immats : [];
+        vehicules = Array.isArray(data.vehicules) ? data.vehicules : [];
+        tracteurs = Array.isArray(data.tracteurs) ? data.tracteurs : [];
+        chargements = Array.isArray(data.chargements) ? data.chargements : [];
+        dechargements = Array.isArray(data.dechargements) ? data.dechargements : [];
+        transports = Array.isArray(data.transports) ? data.transports : [];
+        expediteurs = (data.expediteurs && typeof data.expediteurs === "object") ? data.expediteurs : {};
+        destinataires = (data.destinataires && typeof data.destinataires === "object") ? data.destinataires : {};
+        save(STORAGE_V, visites);
+        save(STORAGE_C, carburant);
+        save(STORAGE_CLI, clients);
+        save(STORAGE_R, remorques);
+        save(STORAGE_IMMAT, immats);
+        save(STORAGE_VEHICULES, vehicules);
+        save(STORAGE_TRACTEUR, tracteurs);
+        save(STORAGE_CG, chargements);
+        save(STORAGE_DC, dechargements);
+        save(STORAGE_TR, transports);
+        save(STORAGE_EXPED, expediteurs);
+        save(STORAGE_DEST, destinataires);
+        migrateLegacyChargementsDechargements();
+        normalizeTransportPaletteFields();
+        renderCarburant();
+        renderRemorques();
+        renderImmatList();
+        renderVehiculeLists();
+        renderTracteurs();
+        transportModule.renderList();
+        transportModule.renderPartyLists();
+        showToast("Sauvegarde complète restaurée");
+      }catch(err){
+        showToast("Erreur de lecture du fichier");
+      }
+    };
+    reader.readAsText(f);
+    e.target.value = "";
+  });
+
+  // ==== MODULE GÉNÉRIQUE CHARGEMENT / DÉCHARGEMENT ====
+  function toCamel(kebab){
+    return kebab.replace(/-([a-z])/g, function(_, c){ return c.toUpperCase(); });
+  }
+  var PALETTE_FIELDS = ["palette-chargee-exp", "palette-rendue-exp", "palette-livree-dest", "palette-rendue-dest", "palette-non-rendue"];
+  var TR_PALETTE_FIELDS = ["palette-entree-exp", "palette-sortie-exp", "palette-non-rendue-exp", "palette-entree-dest", "palette-sortie-dest", "palette-non-rendue-dest"];
+  function createPartyModule(cfg){
+    var editingId = null;
+    var scelleGroupEl = document.getElementById(cfg.prefix + "-scelle-arrivee-group");
+    var scelleVal = null;
+    scelleGroupEl.querySelectorAll(".toggle").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        scelleGroupEl.querySelectorAll(".toggle").forEach(function(b){ b.classList.remove("selected"); });
+        btn.classList.add("selected");
+        scelleVal = btn.dataset.value;
+      });
+    });
+
+    var gpsBtnEl = document.getElementById(cfg.prefix + "-gps-btn");
+    gpsBtnEl.addEventListener("click", function(){
+      if(!navigator.geolocation){
+        showToast("Géolocalisation non disponible — saisis les coordonnées manuellement");
+        return;
+      }
+      var labelBefore = gpsBtnEl.textContent;
+      gpsBtnEl.textContent = "📍 Localisation en cours…";
+      navigator.geolocation.getCurrentPosition(function(pos){
+        var lat = pos.coords.latitude.toFixed(6);
+        var lon = pos.coords.longitude.toFixed(6);
+        document.getElementById(cfg.prefix + "-gps-lat").value = lat;
+        document.getElementById(cfg.prefix + "-gps-lon").value = lon;
+        gpsBtnEl.textContent = "📍 Capter la position actuelle";
+      }, function(err){
+        gpsBtnEl.textContent = labelBefore;
+        showToast("Position indisponible — saisis les coordonnées manuellement");
+      }, { enableHighAccuracy: true, timeout: 10000 });
+    });
+
+    document.getElementById(cfg.prefix + "-gps-maps-btn").addEventListener("click", function(){
+      var lat = document.getElementById(cfg.prefix + "-gps-lat").value.trim();
+      var lon = document.getElementById(cfg.prefix + "-gps-lon").value.trim();
+      if(!lat || !lon){ showToast("Renseigne d'abord la latitude et la longitude"); return; }
+      window.open("https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(lat + "," + lon), "_blank");
+    });
+
+    document.getElementById(cfg.prefix + "-temp-sign").addEventListener("click", function(){
+      var input = document.getElementById(cfg.prefix + "-temperature");
+      var v = input.value.trim();
+      if(v.charAt(0) === "-"){ input.value = v.slice(1); }
+      else if(v.charAt(0) === "+"){ input.value = "-" + v.slice(1); }
+      else if(v.length){ input.value = "-" + v; }
+      else { input.value = "-"; }
+      input.focus();
+    });
+
+    document.getElementById(cfg.prefix + "-frc").addEventListener("input", function(){
+      var digits = this.value.replace(/[^0-9]/g, "").slice(0, 6);
+      if(digits.length > 2){
+        this.value = digits.slice(0,2) + "/" + digits.slice(2);
+      } else {
+        this.value = digits;
+      }
+    });
+
+    function renderPartyList(){
+      var sel = document.getElementById(cfg.prefix + "-party-select");
+      var registry = cfg.getRegistry();
+      var namesSet = {};
+      Object.keys(registry).forEach(function(n){ namesSet[n] = true; });
+      cfg.getData().forEach(function(e){ if(e.party) namesSet[e.party] = true; });
+      var names = Object.keys(namesSet).sort(function(a,b){ return a.localeCompare(b, "fr", {sensitivity:"base"}); });
+      var current = sel.value;
+      sel.innerHTML = '<option value="">-- Sélectionner ' + cfg.selectPlaceholder + ' --</option>' +
+        names.map(function(n){ return '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + '</option>'; }).join("");
+      if(names.indexOf(current) !== -1) sel.value = current;
+    }
+
+    function rememberParty(name, lat, lon){
+      if(!name) return;
+      var registry = cfg.getRegistry();
+      if(lat && lon){ registry[name] = { lat: lat, lon: lon }; }
+      else if(!registry.hasOwnProperty(name)){ registry[name] = { lat: "", lon: "" }; }
+      cfg.setRegistry(registry);
+      save(cfg.registryKey, registry);
+      renderPartyList();
+    }
+
+    document.getElementById(cfg.prefix + "-party-select").addEventListener("change", function(){
+      var name = this.value;
+      if(!name) return;
+      document.getElementById(cfg.prefix + "-party").value = name;
+      var registry = cfg.getRegistry();
+      var c = registry[name];
+      if(c && c.lat && c.lon){
+        document.getElementById(cfg.prefix + "-gps-lat").value = c.lat;
+        document.getElementById(cfg.prefix + "-gps-lon").value = c.lon;
+        gpsBtnEl.textContent = "📍 Position mémorisée pré-remplie";
+      }
+    });
+
+    function resetForm(){
+      document.getElementById(cfg.prefix + "-party").value = "";
+      document.getElementById(cfg.prefix + "-party-select").value = "";
+      document.getElementById(cfg.prefix + "-remorque-select").value = "";
+      document.getElementById(cfg.prefix + "-remorque").value = "";
+      document.getElementById(cfg.prefix + "-arrivee").value = "";
+      document.getElementById(cfg.prefix + "-depart").value = "";
+      document.getElementById(cfg.prefix + "-gps-lat").value = "";
+      document.getElementById(cfg.prefix + "-gps-lon").value = "";
+      document.getElementById(cfg.prefix + "-observation").value = "";
+      document.getElementById(cfg.prefix + "-lettre").value = "";
+      document.getElementById(cfg.prefix + "-commande").value = "";
+      PALETTE_FIELDS.forEach(function(f){ document.getElementById(cfg.prefix + "-" + f).value = ""; });
+      document.getElementById(cfg.prefix + "-frc").value = "";
+      document.getElementById(cfg.prefix + "-temperature").value = "";
+      document.getElementById(cfg.prefix + "-scelle-depart").value = "";
+      scelleVal = null;
+      scelleGroupEl.querySelectorAll(".toggle").forEach(function(b){ b.classList.remove("selected"); });
+      gpsBtnEl.textContent = "📍 Capter la position actuelle";
+      resetPhotos(cfg.prefix);
+      editingId = null;
+      document.getElementById(cfg.prefix + "-save").textContent = cfg.saveLabel;
+      document.getElementById(cfg.prefix + "-cancel-edit").style.display = "none";
+    }
+
+    function loadIntoForm(entry){
+      editingId = entry.id;
+      document.getElementById(cfg.prefix + "-party").value = entry.party || "";
+      document.getElementById(cfg.prefix + "-party-select").value = "";
+      document.getElementById(cfg.prefix + "-remorque-select").value = "";
+      document.getElementById(cfg.prefix + "-remorque").value = entry.remorque || "";
+      document.getElementById(cfg.prefix + "-arrivee").value = entry.arrivee || "";
+      document.getElementById(cfg.prefix + "-depart").value = entry.depart || "";
+      document.getElementById(cfg.prefix + "-gps-lat").value = entry.gpsLat || "";
+      document.getElementById(cfg.prefix + "-gps-lon").value = entry.gpsLon || "";
+      document.getElementById(cfg.prefix + "-observation").value = entry.observation || "";
+      document.getElementById(cfg.prefix + "-lettre").value = entry.lettreVoiture || "";
+      document.getElementById(cfg.prefix + "-commande").value = entry.commande || "";
+      PALETTE_FIELDS.forEach(function(f){
+        var val = entry[toCamel(f)];
+        document.getElementById(cfg.prefix + "-" + f).value = (val !== null && val !== undefined) ? val : "";
+      });
+      document.getElementById(cfg.prefix + "-frc").value = entry.frc || "";
+      document.getElementById(cfg.prefix + "-temperature").value = entry.temperature || "";
+      document.getElementById(cfg.prefix + "-scelle-depart").value = entry.scelleDepart || "";
+      scelleVal = entry.scelleArrivee || null;
+      scelleGroupEl.querySelectorAll(".toggle").forEach(function(b){
+        b.classList.toggle("selected", b.dataset.value === scelleVal);
+      });
+      setPhotos(cfg.prefix, entry.photos);
+      gpsBtnEl.textContent = "📍 Capter la position actuelle";
+      document.getElementById(cfg.prefix + "-save").textContent = cfg.updateLabel;
+      document.getElementById(cfg.prefix + "-cancel-edit").style.display = "block";
+      document.querySelector('.tab[data-tab="' + cfg.tabName + '"]').click();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    document.getElementById(cfg.prefix + "-save").addEventListener("click", function(){
+      var party = document.getElementById(cfg.prefix + "-party").value.trim();
+      if(!party){ showToast(cfg.requiredMsg); return; }
+
+      var entry = {
+        id: editingId || uid(),
+        party: party,
+        remorque: document.getElementById(cfg.prefix + "-remorque").value.trim(),
+        arrivee: document.getElementById(cfg.prefix + "-arrivee").value,
+        depart: document.getElementById(cfg.prefix + "-depart").value,
+        gpsLat: document.getElementById(cfg.prefix + "-gps-lat").value,
+        gpsLon: document.getElementById(cfg.prefix + "-gps-lon").value,
+        observation: document.getElementById(cfg.prefix + "-observation").value.trim(),
+        lettreVoiture: document.getElementById(cfg.prefix + "-lettre").value.trim(),
+        commande: document.getElementById(cfg.prefix + "-commande").value.trim(),
+        frc: document.getElementById(cfg.prefix + "-frc").value.trim(),
+        temperature: document.getElementById(cfg.prefix + "-temperature").value.trim(),
+        scelleDepart: document.getElementById(cfg.prefix + "-scelle-depart").value.trim(),
+        scelleArrivee: scelleVal,
+        photos: getPhotos(cfg.prefix)
+      };
+      PALETTE_FIELDS.forEach(function(f){
+        var raw = document.getElementById(cfg.prefix + "-" + f).value;
+        entry[toCamel(f)] = raw === "" ? null : parseFloat(raw);
+      });
+
+      var data = cfg.getData();
+      if(editingId){
+        var idx = data.findIndex(function(x){ return x.id === editingId; });
+        if(idx !== -1){ data[idx] = entry; } else { data.unshift(entry); }
+        showToast(cfg.updatedToast);
+      } else {
+        data.unshift(entry);
+        showToast(cfg.savedToast);
+      }
+      cfg.setData(data);
+      save(cfg.storageKey, data);
+      rememberParty(party, entry.gpsLat, entry.gpsLon);
+      rememberImmat(entry.remorque);
+      resetForm();
+
+      // Pré-remplit la recherche historique avec la mission qui vient d'être enregistrée
+      renderSearchNameOptions();
+      searchNameEl.value = entry.party;
+      searchDateEl.value = (entry.arrivee || "").slice(0, 10);
+      renderList();
+    });
+
+    document.getElementById(cfg.prefix + "-cancel-edit").addEventListener("click", resetForm);
+
+    function renderEntry(e){
+      var gps = (e.gpsLat && e.gpsLon) ? (e.gpsLat + ", " + e.gpsLon) : "—";
+      var scellePill = e.scelleArrivee === "oui"
+        ? '<span class="pill pill-yes">Scellé intact</span>'
+        : (e.scelleArrivee === "non" ? '<span class="pill pill-no">Scellé rompu</span>' : "");
+      return '' +
+        '<div class="entry">' +
+          '<div class="entry-head">' +
+            '<span class="entry-name">' + fmtDT(e.arrivee) + scellePill + '</span>' +
+            '<span>' +
+              '<button class="entry-edit" data-id="' + e.id + '" style="margin-right:6px;color:var(--amber);background:none;font-size:.8rem;font-weight:700;font-family:var(--mono);padding:4px 6px;">Modifier</button>' +
+              '<button class="entry-del" data-id="' + e.id + '">Suppr.</button>' +
+            '</span>' +
+          '</div>' +
+          '<div class="entry-grid">' +
+            '<div>Remorque<br><b>' + (e.remorque || "—") + '</b></div>' +
+            '<div>Arrivée<br><b>' + fmtDT(e.arrivee) + '</b></div>' +
+            '<div>Départ<br><b>' + fmtDT(e.depart) + '</b></div>' +
+            '<div>GPS<br><b>' + gps + '</b></div>' +
+            '<div>Scellé départ<br><b>' + (e.scelleDepart || "—") + '</b></div>' +
+            '<div>Lettre de voiture<br><b>' + (e.lettreVoiture || "—") + '</b></div>' +
+            '<div>N° commande<br><b>' + (e.commande || "—") + '</b></div>' +
+            '<div>Palette chargée exp.<br><b>' + (e.paletteChargeeExp != null ? e.paletteChargeeExp : "—") + '</b></div>' +
+            '<div>Palette rendue exp.<br><b>' + (e.paletteRendueExp != null ? e.paletteRendueExp : "—") + '</b></div>' +
+            '<div>Palette livrée dest.<br><b>' + (e.paletteLivreeDest != null ? e.paletteLivreeDest : "—") + '</b></div>' +
+            '<div>Palette rendue dest.<br><b>' + (e.paletteRendueDest != null ? e.paletteRendueDest : "—") + '</b></div>' +
+            '<div>Non rendue<br><b>' + (e.paletteNonRendue != null ? e.paletteNonRendue : "—") + '</b></div>' +
+            '<div>FRC<br><b>' + (e.frc || "—") + '</b></div>' +
+            '<div>Température<br><b>' + (e.temperature || "—") + '</b></div>' +
+            (e.observation ? '<div class="full">Observation<br><b>' + escapeHtml(e.observation) + '</b></div>' : '') +
+          '</div>' +
+          renderEntryPhotos(e.photos) +
+        '</div>';
+    }
+
+    var searchNameEl = document.getElementById(cfg.prefix + "-search-name");
+    var searchDateEl = document.getElementById(cfg.prefix + "-search-date");
+
+    function renderSearchNameOptions(){
+      var data = cfg.getData();
+      var namesSet = {};
+      data.forEach(function(e){ if(e.party) namesSet[e.party] = true; });
+      var names = Object.keys(namesSet).sort(function(a,b){ return a.localeCompare(b, "fr", {sensitivity:"base"}); });
+      var current = searchNameEl.value;
+      searchNameEl.innerHTML = '<option value="">-- Tous les clients --</option>' +
+        names.map(function(n){ return '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + '</option>'; }).join("");
+      if(names.indexOf(current) !== -1) searchNameEl.value = current;
+    }
+
+    function renderList(){
+      renderSearchNameOptions();
+      var list = document.getElementById(cfg.prefix + "-list");
+      var data = cfg.getData();
+      var nameFilter = searchNameEl.value;
+      var dateFilter = searchDateEl.value; // format YYYY-MM-DD
+      var filtering = !!(nameFilter || dateFilter);
+
+      var filtered = data.filter(function(e){
+        if(nameFilter && e.party !== nameFilter) return false;
+        if(dateFilter){
+          var entryDate = (e.arrivee || "").slice(0, 10);
+          if(entryDate !== dateFilter) return false;
+        }
+        return true;
+      });
+
+      if(!data.length){
+        list.innerHTML = '<div class="empty">' + cfg.emptyMsg + '</div>';
+        return;
+      }
+      if(!filtered.length){
+        list.innerHTML = '<div class="empty">Aucun résultat pour cette recherche</div>';
+        return;
+      }
+      var groups = {};
+      var order = [];
+      filtered.forEach(function(e){
+        if(!groups[e.party]){ groups[e.party] = []; order.push(e.party); }
+        groups[e.party].push(e);
+      });
+      order.sort(function(a,b){ return a.localeCompare(b, "fr", {sensitivity:"base"}); });
+
+      list.innerHTML = order.map(function(partyName){
+        var entries = groups[partyName];
+        var lastDate = fmtDT(entries[0].arrivee);
+        return '' +
+          '<div class="accordion' + (filtering ? ' open' : '') + '" data-party="' + escapeHtml(partyName) + '">' +
+            '<button class="accordion-head" type="button">' +
+              '<span class="accordion-title">' + escapeHtml(partyName) + '<span class="accordion-count">' + entries.length + '</span></span>' +
+              '<span class="accordion-meta">Dernier ' + cfg.eventNoun + ' ' + lastDate + ' <span class="chevron">▾</span></span>' +
+            '</button>' +
+            '<div class="accordion-body">' +
+              entries.map(renderEntry).join("") +
+            '</div>' +
+          '</div>';
+      }).join("");
+
+      list.querySelectorAll(".accordion-head").forEach(function(head){
+        head.addEventListener("click", function(){ head.parentElement.classList.toggle("open"); });
+      });
+      list.querySelectorAll(".entry-edit").forEach(function(btn){
+        btn.addEventListener("click", function(e){
+          e.stopPropagation();
+          var entry = cfg.getData().find(function(x){ return x.id === btn.dataset.id; });
+          if(entry) loadIntoForm(entry);
+        });
+      });
+      list.querySelectorAll(".entry-del").forEach(function(btn){
+        btn.addEventListener("click", function(e){
+          e.stopPropagation();
+          var data2 = cfg.getData().filter(function(x){ return x.id !== btn.dataset.id; });
+          cfg.setData(data2);
+          save(cfg.storageKey, data2);
+          renderList();
+        });
+      });
+
+      list.querySelectorAll(".photo-thumb-img").forEach(function(img){
+        img.addEventListener("click", function(){ openLightbox(img.dataset.full); });
+      });
+    }
+
+    searchNameEl.addEventListener("change", renderList);
+    searchDateEl.addEventListener("change", renderList);
+    document.getElementById(cfg.prefix + "-search-clear").addEventListener("click", function(){
+      searchNameEl.value = "";
+      searchDateEl.value = "";
+      renderList();
+    });
+
+    renderPartyList();
+    renderList();
+    return { renderList: renderList, renderPartyList: renderPartyList };
+  }
+
+  // ==== MODULE TRANSPORT (Chargement/Déchargement fusionnés) ====
+  var trEditingId = null;
+  var trScelleGroupEl = document.getElementById("tr-scelle-arrivee-group");
+  var trScelleVal = null;
+  trScelleGroupEl.querySelectorAll(".toggle").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      trScelleGroupEl.querySelectorAll(".toggle").forEach(function(b){ b.classList.remove("selected"); });
+      btn.classList.add("selected");
+      trScelleVal = btn.dataset.value;
+    });
+  });
+
+  function setupTrGps(role){
+    // role: "exp" ou "dest"
+    var btn = document.getElementById("tr-gps-" + role + "-btn");
+    var mapsBtn = document.getElementById("tr-gps-" + role + "-maps-btn");
+    var latEl = document.getElementById("tr-gps-" + role + "-lat");
+    var lonEl = document.getElementById("tr-gps-" + role + "-lon");
+    btn.addEventListener("click", function(){
+      if(!navigator.geolocation){
+        showToast("Géolocalisation non disponible — saisis les coordonnées manuellement");
+        return;
+      }
+      var labelBefore = btn.textContent;
+      btn.textContent = "📍 Localisation en cours…";
+      navigator.geolocation.getCurrentPosition(function(pos){
+        latEl.value = pos.coords.latitude.toFixed(6);
+        lonEl.value = pos.coords.longitude.toFixed(6);
+        btn.textContent = "📍 Capter la position actuelle";
+      }, function(){
+        btn.textContent = labelBefore;
+        showToast("Position indisponible — saisis les coordonnées manuellement");
+      }, { enableHighAccuracy: true, timeout: 10000 });
+    });
+    mapsBtn.addEventListener("click", function(){
+      var lat = latEl.value.trim();
+      var lon = lonEl.value.trim();
+      if(!lat || !lon){ showToast("Renseigne d'abord la latitude et la longitude"); return; }
+      window.open("https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(lat + "," + lon), "_blank");
+    });
+    return { btn: btn, latEl: latEl, lonEl: lonEl };
+  }
+  var trGpsExp = setupTrGps("exp");
+  var trGpsDest = setupTrGps("dest");
+
+  document.getElementById("tr-temp-sign").addEventListener("click", function(){
+    var input = document.getElementById("tr-temperature");
+    var v = input.value.trim();
+    if(v.charAt(0) === "-"){ input.value = v.slice(1); }
+    else if(v.charAt(0) === "+"){ input.value = "-" + v.slice(1); }
+    else if(v.length){ input.value = "-" + v; }
+    else { input.value = "-"; }
+    input.focus();
+  });
+
+  document.getElementById("tr-frc").addEventListener("input", function(){
+    var digits = this.value.replace(/[^0-9]/g, "").slice(0, 6);
+    this.value = digits.length > 2 ? digits.slice(0,2) + "/" + digits.slice(2) : digits;
+  });
+
+  function trRenderPartyLists(){
+    var expSel = document.getElementById("tr-exp-select");
+    var expNames = {};
+    Object.keys(expediteurs).forEach(function(n){ expNames[n] = true; });
+    transports.forEach(function(e){ if(e.expediteur) expNames[e.expediteur] = true; });
+    var expList = Object.keys(expNames).sort(function(a,b){ return a.localeCompare(b, "fr", {sensitivity:"base"}); });
+    var expCurrent = expSel.value;
+    expSel.innerHTML = '<option value="">-- Sélectionner un expéditeur existant --</option>' +
+      expList.map(function(n){ return '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + '</option>'; }).join("");
+    if(expList.indexOf(expCurrent) !== -1) expSel.value = expCurrent;
+
+    var destSel = document.getElementById("tr-dest-select");
+    var destNames = {};
+    Object.keys(destinataires).forEach(function(n){ destNames[n] = true; });
+    transports.forEach(function(e){ if(e.destinataire) destNames[e.destinataire] = true; });
+    var destList = Object.keys(destNames).sort(function(a,b){ return a.localeCompare(b, "fr", {sensitivity:"base"}); });
+    var destCurrent = destSel.value;
+    destSel.innerHTML = '<option value="">-- Sélectionner un destinataire existant --</option>' +
+      destList.map(function(n){ return '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + '</option>'; }).join("");
+    if(destList.indexOf(destCurrent) !== -1) destSel.value = destCurrent;
+  }
+
+  function trRememberParty(registry, registryKey, name, lat, lon){
+    if(!name) return;
+    if(lat && lon){ registry[name] = { lat: lat, lon: lon }; }
+    else if(!registry.hasOwnProperty(name)){ registry[name] = { lat: "", lon: "" }; }
+    save(registryKey, registry);
+    trRenderPartyLists();
+  }
+
+  document.getElementById("tr-exp-select").addEventListener("change", function(){
+    var name = this.value;
+    if(!name) return;
+    document.getElementById("tr-exp").value = name;
+    var c = expediteurs[name];
+    if(c && c.lat && c.lon){
+      trGpsExp.latEl.value = c.lat;
+      trGpsExp.lonEl.value = c.lon;
+      trGpsExp.btn.textContent = "📍 Position mémorisée pré-remplie";
+    }
+  });
+
+  document.getElementById("tr-dest-select").addEventListener("change", function(){
+    var name = this.value;
+    if(!name) return;
+    document.getElementById("tr-dest").value = name;
+    var c = destinataires[name];
+    if(c && c.lat && c.lon){
+      trGpsDest.latEl.value = c.lat;
+      trGpsDest.lonEl.value = c.lon;
+      trGpsDest.btn.textContent = "📍 Position mémorisée pré-remplie";
+    }
+  });
+
+  function trResetForm(){
+    document.getElementById("tr-exp").value = "";
+    document.getElementById("tr-exp-select").value = "";
+    document.getElementById("tr-dest").value = "";
+    document.getElementById("tr-dest-select").value = "";
+    document.getElementById("tr-remorque-select").value = "";
+    document.getElementById("tr-remorque").value = "";
+    document.getElementById("tr-arrivee-exp").value = "";
+    document.getElementById("tr-depart-exp").value = "";
+    trGpsExp.latEl.value = "";
+    trGpsExp.lonEl.value = "";
+    trGpsExp.btn.textContent = "📍 Capter la position actuelle";
+    document.getElementById("tr-arrivee-dest").value = "";
+    document.getElementById("tr-depart-dest").value = "";
+    trGpsDest.latEl.value = "";
+    trGpsDest.lonEl.value = "";
+    trGpsDest.btn.textContent = "📍 Capter la position actuelle";
+    document.getElementById("tr-observation").value = "";
+    document.getElementById("tr-lettre").value = "";
+    document.getElementById("tr-commande").value = "";
+    TR_PALETTE_FIELDS.forEach(function(f){
+      document.getElementById("tr-" + f).value = "";
+    });
+    document.getElementById("tr-frc").value = "";
+    document.getElementById("tr-temperature").value = "";
+    document.getElementById("tr-scelle-depart").value = "";
+    trScelleVal = null;
+    trScelleGroupEl.querySelectorAll(".toggle").forEach(function(b){ b.classList.remove("selected"); });
+    resetPhotos("tr");
+    trEditingId = null;
+    document.getElementById("tr-save").textContent = "Enregistrer";
+    document.getElementById("tr-cancel-edit").style.display = "none";
+  }
+
+  function trLoadIntoForm(entry){
+    trEditingId = entry.id;
+    document.getElementById("tr-exp").value = entry.expediteur || "";
+    document.getElementById("tr-exp-select").value = "";
+    document.getElementById("tr-dest").value = entry.destinataire || "";
+    document.getElementById("tr-dest-select").value = "";
+    document.getElementById("tr-remorque-select").value = "";
+    document.getElementById("tr-remorque").value = entry.remorque || "";
+    document.getElementById("tr-arrivee-exp").value = entry.arriveeExp || "";
+    document.getElementById("tr-depart-exp").value = entry.departExp || "";
+    trGpsExp.latEl.value = entry.gpsExpLat || "";
+    trGpsExp.lonEl.value = entry.gpsExpLon || "";
+    document.getElementById("tr-arrivee-dest").value = entry.arriveeDest || "";
+    document.getElementById("tr-depart-dest").value = entry.departDest || "";
+    trGpsDest.latEl.value = entry.gpsDestLat || "";
+    trGpsDest.lonEl.value = entry.gpsDestLon || "";
+    document.getElementById("tr-observation").value = entry.observation || "";
+    document.getElementById("tr-lettre").value = entry.lettreVoiture || "";
+    document.getElementById("tr-commande").value = entry.commande || "";
+    TR_PALETTE_FIELDS.forEach(function(f){
+      var val = entry[toCamel(f)];
+      document.getElementById("tr-" + f).value = (val !== null && val !== undefined) ? val : "";
+    });
+    document.getElementById("tr-frc").value = entry.frc || "";
+    document.getElementById("tr-temperature").value = entry.temperature || "";
+    document.getElementById("tr-scelle-depart").value = entry.scelleDepart || "";
+    trScelleVal = entry.scelleArrivee || null;
+    trScelleGroupEl.querySelectorAll(".toggle").forEach(function(b){
+      b.classList.toggle("selected", b.dataset.value === trScelleVal);
+    });
+    setPhotos("tr", entry.photos);
+    document.getElementById("tr-save").textContent = "Mettre à jour";
+    document.getElementById("tr-cancel-edit").style.display = "block";
+    document.querySelector('.tab[data-tab="transport"]').click();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  var trSearchNameEl = document.getElementById("tr-search-name");
+  var trSearchDateEl = document.getElementById("tr-search-date");
+
+  function trRenderSearchNameOptions(){
+    var namesSet = {};
+    transports.forEach(function(e){
+      if(e.expediteur) namesSet[e.expediteur] = true;
+      if(e.destinataire) namesSet[e.destinataire] = true;
+    });
+    var names = Object.keys(namesSet).sort(function(a,b){ return a.localeCompare(b, "fr", {sensitivity:"base"}); });
+    var current = trSearchNameEl.value;
+    trSearchNameEl.innerHTML = '<option value="">-- Tous les clients --</option>' +
+      names.map(function(n){ return '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + '</option>'; }).join("");
+    if(names.indexOf(current) !== -1) trSearchNameEl.value = current;
+  }
+
+  document.getElementById("tr-save").addEventListener("click", function(){
+    var expediteur = document.getElementById("tr-exp").value.trim();
+    var destinataire = document.getElementById("tr-dest").value.trim();
+    if(!expediteur && !destinataire){ showToast("Renseigne au moins l'expéditeur ou le destinataire"); return; }
+
+    var entry = {
+      id: trEditingId || uid(),
+      expediteur: expediteur,
+      destinataire: destinataire,
+      remorque: document.getElementById("tr-remorque").value.trim(),
+      arriveeExp: document.getElementById("tr-arrivee-exp").value,
+      departExp: document.getElementById("tr-depart-exp").value,
+      gpsExpLat: trGpsExp.latEl.value,
+      gpsExpLon: trGpsExp.lonEl.value,
+      arriveeDest: document.getElementById("tr-arrivee-dest").value,
+      departDest: document.getElementById("tr-depart-dest").value,
+      gpsDestLat: trGpsDest.latEl.value,
+      gpsDestLon: trGpsDest.lonEl.value,
+      observation: document.getElementById("tr-observation").value.trim(),
+      lettreVoiture: document.getElementById("tr-lettre").value.trim(),
+      commande: document.getElementById("tr-commande").value.trim(),
+      frc: document.getElementById("tr-frc").value.trim(),
+      temperature: document.getElementById("tr-temperature").value.trim(),
+      scelleDepart: document.getElementById("tr-scelle-depart").value.trim(),
+      scelleArrivee: trScelleVal,
+      photos: getPhotos("tr")
+    };
+    TR_PALETTE_FIELDS.forEach(function(f){
+      var raw = document.getElementById("tr-" + f).value;
+      entry[toCamel(f)] = raw === "" ? null : parseFloat(raw);
+    });
+
+    if(trEditingId){
+      var idx = transports.findIndex(function(x){ return x.id === trEditingId; });
+      if(idx !== -1){ transports[idx] = entry; } else { transports.unshift(entry); }
+      showToast("Mis à jour");
+    } else {
+      transports.unshift(entry);
+      showToast("Enregistré");
+    }
+    save(STORAGE_TR, transports);
+    trRememberParty(expediteurs, STORAGE_EXPED, expediteur, entry.gpsExpLat, entry.gpsExpLon);
+    trRememberParty(destinataires, STORAGE_DEST, destinataire, entry.gpsDestLat, entry.gpsDestLon);
+    rememberImmat(entry.remorque);
+    trResetForm();
+
+    trRenderSearchNameOptions();
+    trSearchNameEl.value = expediteur || destinataire;
+    trSearchDateEl.value = (entry.arriveeExp || entry.arriveeDest || "").slice(0, 10);
+    trRenderList();
+  });
+
+  document.getElementById("tr-cancel-edit").addEventListener("click", trResetForm);
+
+  function trRenderEntry(e){
+    var gpsExp = (e.gpsExpLat && e.gpsExpLon) ? (e.gpsExpLat + ", " + e.gpsExpLon) : "—";
+    var gpsDest = (e.gpsDestLat && e.gpsDestLon) ? (e.gpsDestLat + ", " + e.gpsDestLon) : "—";
+    var scellePill = e.scelleArrivee === "oui"
+      ? '<span class="pill pill-yes">Scellé intact</span>'
+      : (e.scelleArrivee === "non" ? '<span class="pill pill-no">Scellé rompu</span>' : "");
+    return '' +
+      '<div class="entry">' +
+        '<div class="entry-head">' +
+          '<span class="entry-name">' + fmtDT(e.arriveeExp) + scellePill + '</span>' +
+          '<span>' +
+            '<button class="entry-edit" data-id="' + e.id + '" style="margin-right:6px;color:var(--amber);background:none;font-size:.8rem;font-weight:700;font-family:var(--mono);padding:4px 6px;">Modifier</button>' +
+            '<button class="entry-del" data-id="' + e.id + '">Suppr.</button>' +
+          '</span>' +
+        '</div>' +
+        '<div class="entry-grid">' +
+          '<div>Expéditeur<br><b>' + (e.expediteur || "—") + '</b></div>' +
+          '<div>Destinataire<br><b>' + (e.destinataire || "—") + '</b></div>' +
+          '<div>Remorque<br><b>' + (e.remorque || "—") + '</b></div>' +
+          '<div>Arrivée exp.<br><b>' + fmtDT(e.arriveeExp) + '</b></div>' +
+          '<div>Départ exp.<br><b>' + fmtDT(e.departExp) + '</b></div>' +
+          '<div>GPS exp.<br><b>' + gpsExp + '</b></div>' +
+          '<div>Palettes entrée exp.<br><b>' + (e.paletteEntreeExp != null ? e.paletteEntreeExp : "—") + '</b></div>' +
+          '<div>Palettes sortie exp.<br><b>' + (e.paletteSortieExp != null ? e.paletteSortieExp : "—") + '</b></div>' +
+          '<div>Palettes non rendues exp.<br><b>' + (e.paletteNonRendueExp != null ? e.paletteNonRendueExp : "—") + '</b></div>' +
+          '<div>Arrivée dest.<br><b>' + fmtDT(e.arriveeDest) + '</b></div>' +
+          '<div>Départ dest.<br><b>' + fmtDT(e.departDest) + '</b></div>' +
+          '<div>GPS dest.<br><b>' + gpsDest + '</b></div>' +
+          '<div>Palettes entrée dest.<br><b>' + (e.paletteEntreeDest != null ? e.paletteEntreeDest : "—") + '</b></div>' +
+          '<div>Palettes sortie dest.<br><b>' + (e.paletteSortieDest != null ? e.paletteSortieDest : "—") + '</b></div>' +
+          '<div>Palettes non rendues dest.<br><b>' + (e.paletteNonRendueDest != null ? e.paletteNonRendueDest : "—") + '</b></div>' +
+          '<div>Scellé départ<br><b>' + (e.scelleDepart || "—") + '</b></div>' +
+          '<div>Lettre de voiture<br><b>' + (e.lettreVoiture || "—") + '</b></div>' +
+          '<div>N° commande<br><b>' + (e.commande || "—") + '</b></div>' +
+          '<div>FRC<br><b>' + (e.frc || "—") + '</b></div>' +
+          '<div>Température<br><b>' + (e.temperature || "—") + '</b></div>' +
+          (e.observation ? '<div class="full">Observation<br><b>' + escapeHtml(e.observation) + '</b></div>' : '') +
+        '</div>' +
+        renderEntryPhotos(e.photos) +
+      '</div>';
+  }
+
+  function trRenderList(){
+    trRenderSearchNameOptions();
+    var list = document.getElementById("tr-list");
+    var nameFilter = trSearchNameEl.value;
+    var dateFilter = trSearchDateEl.value;
+    var filtering = !!(nameFilter || dateFilter);
+
+    var filtered = transports.filter(function(e){
+      if(nameFilter && e.expediteur !== nameFilter && e.destinataire !== nameFilter) return false;
+      if(dateFilter){
+        var d1 = (e.arriveeExp || "").slice(0, 10);
+        var d2 = (e.arriveeDest || "").slice(0, 10);
+        if(d1 !== dateFilter && d2 !== dateFilter) return false;
+      }
+      return true;
+    });
+
+    if(!transports.length){
+      list.innerHTML = '<div class="empty">Aucun chargement/déchargement enregistré</div>';
+      return;
+    }
+    if(!filtered.length){
+      list.innerHTML = '<div class="empty">Aucun résultat pour cette recherche</div>';
+      return;
+    }
+
+    var groups = {};
+    var order = [];
+    filtered.forEach(function(e){
+      var key = e.expediteur || e.destinataire || "Sans nom";
+      if(!groups[key]){ groups[key] = []; order.push(key); }
+      groups[key].push(e);
+    });
+    order.sort(function(a,b){ return a.localeCompare(b, "fr", {sensitivity:"base"}); });
+
+    list.innerHTML = order.map(function(name){
+      var entries = groups[name];
+      var lastDate = fmtDT(entries[0].arriveeExp || entries[0].arriveeDest);
+      return '' +
+        '<div class="accordion' + (filtering ? ' open' : '') + '" data-party="' + escapeHtml(name) + '">' +
+          '<button class="accordion-head" type="button">' +
+            '<span class="accordion-title">' + escapeHtml(name) + '<span class="accordion-count">' + entries.length + '</span></span>' +
+            '<span class="accordion-meta">Dernier ' + lastDate + ' <span class="chevron">▾</span></span>' +
+          '</button>' +
+          '<div class="accordion-body">' +
+            entries.map(trRenderEntry).join("") +
+          '</div>' +
+        '</div>';
+    }).join("");
+
+    list.querySelectorAll(".accordion-head").forEach(function(head){
+      head.addEventListener("click", function(){ head.parentElement.classList.toggle("open"); });
+    });
+    list.querySelectorAll(".entry-edit").forEach(function(btn){
+      btn.addEventListener("click", function(e){
+        e.stopPropagation();
+        var entry = transports.find(function(x){ return x.id === btn.dataset.id; });
+        if(entry) trLoadIntoForm(entry);
+      });
+    });
+    list.querySelectorAll(".entry-del").forEach(function(btn){
+      btn.addEventListener("click", function(e){
+        e.stopPropagation();
+        transports = transports.filter(function(x){ return x.id !== btn.dataset.id; });
+        save(STORAGE_TR, transports);
+        trRenderList();
+      });
+    });
+    list.querySelectorAll(".photo-thumb-img").forEach(function(img){
+      img.addEventListener("click", function(){ openLightbox(img.dataset.full); });
+    });
+  }
+
+  trSearchNameEl.addEventListener("change", trRenderList);
+  trSearchDateEl.addEventListener("change", trRenderList);
+  document.getElementById("tr-search-clear").addEventListener("click", function(){
+    trSearchNameEl.value = "";
+    trSearchDateEl.value = "";
+    trRenderList();
+  });
+
+  var transportModule = { renderList: trRenderList, renderPartyLists: trRenderPartyLists };
+  // ==== FIN MODULE TRANSPORT ====
+
+  // ---- Init ----
+  renderVehiculeLists();
+  renderCarburant();
+  renderImmatList();
+  renderRemorques();
+  renderTracteurs();
+  migrateLegacyChargementsDechargements();
+  normalizeTransportPaletteFields();
+  trRenderPartyLists();
+  trRenderList();
+  if(!storageOK){ showToast("⚠ Stockage local indisponible sur ce navigateur"); }
+})();
+</script>
+</body>
+</html>
